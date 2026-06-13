@@ -40,7 +40,7 @@ scripts/
                       # merges disabledSkills, sets tools.restrictToWorkspace, syncs .env template.
   resolve_workspace.py  # Reads workspace path from config.json; called by agent/gateway launchers.
   requirements-lite.txt # Pip dependency manifest (no pyproject.toml extras).
-  write_lockhead.py, healthcheck.py, unzip.vbs
+  lockhead.py, healthcheck.py, unzip.vbs
   setup/              # Dot-sourced by nanobot-setup.ps1 in this order:
     install_busybox.ps1 → install_python.ps1 → install_git.ps1 → install_gh.ps1 → install_nodejs.ps1
     → install_source.ps1 → install_deps.ps1

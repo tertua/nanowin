@@ -179,7 +179,7 @@ Write-Host ""
 
 # ===== LOCKHEAD FALLBACK =====
 if (-not (Test-Path (Join-Path $DATA_DIR ".lockhead"))) {
-    & $PythonExe (Join-Path $SCRIPTS_DIR "write_lockhead.py") $ROOT
+    & $PythonExe (Join-Path $SCRIPTS_DIR "lockhead.py") $ROOT
     Write-Info ".lockhead created."
 }
 Write-Info "    Please wait..."

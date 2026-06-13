@@ -1,4 +1,4 @@
-"""Write .lockhead with host metadata (INI-style, batch-friendly)."""
+"""Lockhead — write .lockhead with host metadata (INI-style, batch-friendly)."""
 
 import os
 import platform
