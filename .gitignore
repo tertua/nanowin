@@ -1,0 +1,34 @@
+# ============================================
+#  .gitignore - NANOWIN
+#  whitelist mode by simata.id
+# ============================================
+/*
+!/.gitignore
+!/.gitattributes
+!/LICENSE
+
+# All Portable Builder
+!/setup.bat
+!/scripts/
+!/scripts/**
+
+# Cache files
+__pycache__/
+*.py[cod]
+*$py.class
+node_modules/
+
+# All Launcher Batch
+!/edit_env.bat
+!/build-webui.bat
+!/start-chat.bat
+!/start-gateway.vbs
+
+# All Markdown
+!/README.md
+!/SECURITY.md
+!/AGENTS.md
+
+# GitHub config
+!/.github/
+!/.github/FUNDING.yml

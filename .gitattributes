@@ -1,0 +1,31 @@
+# Normalize line endings for Windows-native scripts
+*.ps1    text eol=crlf
+*.psm1   text eol=crlf
+*.psd1   text eol=crlf
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+*.vbs    text eol=crlf
+
+# Markdown - Git handles normally
+*.md     text eol=lf
+
+# Python - LF standard (no BOM)
+*.py     text eol=lf
+
+# Config formats - LF
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.json   text eol=lf
+*.toml   text eol=lf
+
+# Plain text
+*.txt    text eol=lf
+*.example text eol=lf
+*.env    text eol=lf
+
+# Binary - no conversion
+*.exe    binary
+*.zip    binary
+*.7z     binary
+*.tar.gz binary
+*.gz     binary
