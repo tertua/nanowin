@@ -43,8 +43,7 @@ Write-Host "  $('=' * 49)" -ForegroundColor Cyan
 Write-Host "  Folder: $ROOT"
 Write-Host ""
 
-$LockFile = Join-Path $DATA_DIR ".lockhead"
-if (Test-Path $LockFile) {
+if (Test-Path $LOCKHEAD) {
     Write-Host "  [lockhead] Setup was already completed before."
     Write-Host "  Delete file:  data\.lockhead"
     Write-Host "  then run again to re-setup."
@@ -178,8 +177,8 @@ if (Test-Path $EnvFile) { Write-OK "OK" } else { Write-Host "    [MISSING]" }
 Write-Host ""
 
 # ===== LOCKHEAD FALLBACK =====
-if (-not (Test-Path (Join-Path $DATA_DIR ".lockhead"))) {
-    & $PythonExe (Join-Path $SCRIPTS_DIR "lockhead.py") $ROOT
+if (-not (Test-Path $LOCKHEAD)) {
+    & $PythonExe $LOCKHEAD_SCRIPT $ROOT
     Write-Info ".lockhead created."
 }
 Write-Info "    Please wait..."

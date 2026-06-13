@@ -53,7 +53,7 @@ if (Test-Path $ConfigFile) {
 }
 Write-OK "config.json ready."
 
-& $PythonExe (Join-Path $SCRIPTS_DIR "lockhead.py") $ROOT
+& $PythonExe $LOCKHEAD_SCRIPT $ROOT
 Write-OK "lockhead installed."
 
 $EnvFile = Join-Path $DATA_DIR ".env"

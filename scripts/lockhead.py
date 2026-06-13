@@ -156,9 +156,8 @@ def detect_system(root: str) -> dict[str, str]:
 
 
 def write_lockhead(root: str) -> None:
-    data_dir = Path(root) / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    lockhead = data_dir / ".lockhead"
+    lockhead = lockhead_path(root)
+    lockhead.parent.mkdir(parents=True, exist_ok=True)
 
     system = detect_system(root)
     software = detect_software(root)
@@ -204,9 +203,18 @@ def write_lockhead(root: str) -> None:
     print(f"  {system['hostname']} | {system['device']} | {system['os']}")
 
 
+def lockhead_path(root: str) -> Path:
+    """Return the .lockhead file path (single source of truth)."""
+    return Path(root) / "data" / ".lockhead"
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         root = sys.argv[1]
     else:
         root = str(Path(__file__).resolve().parent.parent)
-    write_lockhead(root)
+
+    if "--path" in sys.argv:
+        print(lockhead_path(root))
+    else:
+        write_lockhead(root)

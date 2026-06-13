@@ -29,6 +29,8 @@ $HOME_DIR = Join-Path $DATA_DIR "home"
 $TMP_DIR  = Join-Path $ROOT "tmp"
 $NANOBOT_HOME = $DATA_DIR
 $PY = Join-Path $ROOT "bin\python.exe"
+$LOCKHEAD = Join-Path $DATA_DIR ".lockhead"
+$LOCKHEAD_SCRIPT = Join-Path $ROOT "scripts\lockhead.py"
 
 # -- Redirect environment variables to portable locations -------------
 $Env:USERPROFILE      = $HOME_DIR
