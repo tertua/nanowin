@@ -89,13 +89,17 @@ def _patch_log_handlers(content: str, cond_var: str, old_upstream: str, new_bloc
         print(f"  [OK] {label} (upstream full-block)")
         return content, 1
 
-    # Sentinel: already fully patched (logger.remove() in log section + terminal ternary + file DEBUG)
+    # Sentinel: already fully patched
     if "_log_dir.mkdir" in content:
         log_section = content[content.index("_log_dir.mkdir"):]
+        # Standard: unconditional terminal at INFO/DEBUG (serve/gateway/agent --logs)
+        has_ternary = f'"DEBUG" if {cond_var} else "INFO"' in content
+        # Agent-conditional: stderr handler only added when --logs is passed
+        has_conditional = f'if {cond_var}:\n        logger.add(\n            sys.stderr' in content
         if (
             "logger.remove()" in log_section
-            and f'"DEBUG" if {cond_var} else "INFO"' in content
             and re.search(r'level="DEBUG",\s+rotation="1 day"', content)
+            and (has_ternary or has_conditional)
         ):
             return content, 0  # SKIP
 
@@ -291,8 +295,38 @@ def patch_gateway(content):
     )
     return _patch_log_handlers(content, 'verbose', old_upstream, new, "4b. gateway() terminal=INFO file=DEBUG")
 
+_OLD_UNCONDITIONAL_STDERR = (
+    '    logger.add(\n'
+    '        sys.stderr,\n'
+    '        format=(\n'
+    '            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "\n'
+    '            "<level>{level: <5}</level> | "\n'
+    '            "<cyan>{extra[channel]}</cyan> | "\n'
+    '            "<level>{message}</level>"\n'
+    '        ),\n'
+    '        level="DEBUG" if logs else "INFO",\n'
+    '        colorize=None,\n'
+    '        filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
+    '    )'
+)
+_NEW_CONDITIONAL_STDERR = (
+    '    if logs:\n'
+    '        logger.add(\n'
+    '            sys.stderr,\n'
+    '            format=(\n'
+    '                "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "\n'
+    '                "<level>{level: <5}</level> | "\n'
+    '                "<cyan>{extra[channel]}</cyan> | "\n'
+    '                "<level>{message}</level>"\n'
+    '            ),\n'
+    '            level="DEBUG",\n'
+    '            colorize=None,\n'
+    '            filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
+    '        )'
+)
+
 def patch_agent(content):
-    """4c. agent(): terminal=INFO (heartbeat etc.), file=DEBUG (full detail). --logs elevates terminal to DEBUG."""
+    """4c. agent(): no terminal logs by default, file=DEBUG (full detail). --logs adds stderr DEBUG."""
     old_upstream = (
         '\n    if logs:\n'
         '        logger.enable("nanobot")\n'
@@ -301,13 +335,13 @@ def patch_agent(content):
     )
     new = (
         '\n'
-        '    # Terminal: INFO+ (heartbeat, warning, error — so chat prompts stay uncluttered).\n'
-        '    # File: DEBUG (full detail, stack trace etc.). --logs elevates terminal to DEBUG.\n'
+        '    # Terminal: only when --logs is passed (chat stays clean otherwise).\n'
+        '    # File: DEBUG (full detail, stack trace etc.).\n'
         '    _log_dir = (config.workspace_path.parent / "logs").resolve()\n'
         '    _log_dir.mkdir(parents=True, exist_ok=True)\n'
         '    # Remove ALL existing handlers (incl. loguru default id=0 at DEBUG) so they do not leak through.\n'
         '    logger.remove()\n'
-        + _STDERR_BLOCK.replace('__COND__', 'logs') + '\n'
+        + _NEW_CONDITIONAL_STDERR + '\n'
         '    logger.add(\n'
         '        _log_dir / "nanobot_{time:YYYY-MM-DD}.log",\n'
         '        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {extra[channel]} | {message}",\n'
@@ -317,7 +351,14 @@ def patch_agent(content):
         '        filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
         '    )'
     )
-    return _patch_log_handlers(content, 'logs', old_upstream, new, "4c. agent() terminal=INFO file=DEBUG")
+
+    # Migration: already-patched unconditional stderr (with ternary) → conditional (agent only)
+    if _OLD_UNCONDITIONAL_STDERR in content:
+        content = content.replace(_OLD_UNCONDITIONAL_STDERR, _NEW_CONDITIONAL_STDERR)
+        print("  [OK] 4c. agent() migrated from unconditional to conditional stderr")
+        return content, 1
+
+    return _patch_log_handlers(content, 'logs', old_upstream, new, "4c. agent() no-terminal logs by default file=DEBUG")
 
 def patch_multiline(content):
     """4d. _init_prompt_session(): set multiline=True untuk multi-baris input."""
