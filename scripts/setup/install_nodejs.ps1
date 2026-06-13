@@ -10,17 +10,7 @@ if (Test-Path $NodeExe) {
     Write-Info "Node.js portable found on USB."
     $env:PATH = "$ROOT\bin\nodejs;$env:PATH"
     $NodeReady = $true
-}
-if (-not $NodeReady) {
-    try {
-        $null = & node --version 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-OK "System Node.js found."
-            $NodeReady = $true
-        }
-    } catch {}
-}
-if (-not $NodeReady) {
+} else {
     Write-Info "Node.js not found, downloading portable..."
     Write-Info "Download Node.js v$NodeVer ($ArchNode)..."
     $NodeZipUrl = "https://nodejs.org/dist/v$NodeVer/node-v$NodeVer-win-$ArchNode.zip"
