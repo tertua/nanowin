@@ -44,7 +44,7 @@ echo    NANOBOT PORTABLE BUILDER - Visit simata.id
 echo ================================================================
 echo.
 
-TIMEOUT /T 11 /NOBREAK
+TIMEOUT /T 3 /NOBREAK
 
 rem ── Check minimum Windows version ─────────────────────────
 for /f "tokens=2 delims=[]" %%v in ('ver') do (
@@ -73,16 +73,13 @@ rem ── Check PowerShell 5.1+ availability ───────────�
 echo [INFO] Checking Windows PowerShell...
 echo.
 
-powershell -NoProfile -Command "$PSVersionTable.PSVersion.Major" >nul 2>&1
-if errorlevel 1 (
+for /f "usebackq tokens=*" %%a in (`powershell -NoProfile -Command "$PSVersionTable.PSVersion.Major"`) do set "PS_MAJOR=%%a"
+if not defined PS_MAJOR (
     echo [ERROR] Windows PowerShell unavailable or damaged.
     echo         Make sure Windows PowerShell 5.1+ is exist.
     pause
     exit /b 1
 )
-
-for /f "usebackq tokens=*" %%a in (`powershell -NoProfile -Command "$PSVersionTable.PSVersion.Major"`) do set "PS_MAJOR=%%a"
-
 if %PS_MAJOR% LSS 5 (
     echo [ERROR] Windows PowerShell version 5.1+ required.
     echo         Version detected: %PS_MAJOR%.x

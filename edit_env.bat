@@ -51,7 +51,7 @@ if errorlevel 1 (
 :edit
 echo  [2/3] Active provider context:
 set "HAVE_PROVIDER="
-for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -Command "$ErrorActionPreference='SilentlyContinue'; $c = Get-Content 'data\config.json' -Raw | ConvertFrom-Json; $p = $c.agents.defaults.provider; if ($p) { Write-Output ('Provider: ' + $p); $pf = $c.providers.$p; if ($pf) { $pf.PSObject.Properties | ForEach-Object { if ($_.Value -match '\$\{([^}]+)\}') { Write-Output ('  uses: ' + $Matches[1]) } } } }"`) do (
+for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -File "scripts\edit_env_helper.ps1"`) do (
     echo         %%L
     set "HAVE_PROVIDER=1"
 )
