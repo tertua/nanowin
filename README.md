@@ -1,7 +1,5 @@
 ﻿# Nanowin — Nanobot Windows Portable
 
----
-
 > https://github.com/tertua/nanowin
 
 Portable AI runtime for Windows. No installation — runs from USB drive.
@@ -19,7 +17,7 @@ That's it. Everything else is automatic.
 ## Requirements
 
 - Windows 10/11 (64-bit)
-- ~500 MB free space
+- ~600 MB free space
 
 ## Uninstall
 
@@ -28,4 +26,4 @@ That's it. Everything else is automatic.
 
 ---
 
-Based on [nanobot-ai](https://github.com/HKUDS/nanobot). Fully portable.
+Based on [nanobot-ai](https://github.com/HKUDS/nanobot). Nanowin is fully portable.

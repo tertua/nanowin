@@ -8,7 +8,7 @@ $CallerScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCo
 
 # Start logging
 $LogFile = Join-Path $ROOT "setup_log.txt"
-Start-Transcript -Path $LogFile -Force -Append | Out-Null
+Start-Transcript -Path $LogFile -Force | Out-Null
 Write-Host "[LOG] Setup log: $LogFile" -ForegroundColor Green
 
 # -- Load helper functions -------------------------------------------
