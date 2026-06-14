@@ -9,9 +9,7 @@ Write-OK ""
 
 $ReqFile = Join-Path $SCRIPTS_DIR "requirements-lite.txt"
 if (-not (Test-Path $ReqFile)) {
-    Write-Error "requirements-lite.txt not found: $ReqFile"
-    pause
-    exit 1
+    throw "requirements-lite.txt not found: $ReqFile"
 }
 Write-Info "Installing packages from requirements-lite.txt ..."
 & $PythonExe -m pip install --no-warn-script-location --upgrade pip setuptools wheel hatchling hatch-vcs -r $ReqFile
@@ -44,9 +42,7 @@ if (Test-Path $ConfigFile) {
     Write-Info "Generate config via nanobot onboard..."
     & $PythonExe -m nanobot onboard "--config=$ConfigFile" "--workspace=$WorkspaceDir"
     if (-not (Test-Path $ConfigFile)) {
-        Write-Error "Failed to generate config.json!"
-        pause
-        exit 1
+        throw "Failed to generate config.json!"
     }
     Write-Info "Post-process config for portable..."
     & $PythonExe (Join-Path $SCRIPTS_DIR "post_config.py") $ConfigFile $ROOT

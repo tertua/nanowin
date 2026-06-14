@@ -32,9 +32,7 @@ if (-not $SrcOk) {
     Write-Info "Download ZIP..."
     Download-Helper -Url "https://github.com/HKUDS/nanobot/archive/refs/heads/main.zip" -Out $RepoZip
     if (-not (Test-Path $RepoZip)) {
-        Write-Error "Failed to download source code!"
-        pause
-        exit 1
+        throw "Failed to download source code!"
     }
     Write-Info "Extracting ZIP..."
     $ExtractDir = Join-Path $TMP_DIR "repo_extract"
@@ -50,9 +48,7 @@ if (-not $SrcOk) {
     if (Test-Path (Join-Path $APP_DIR "README.md")) {
         Write-OK "ZIP successful."
     } else {
-        Write-Error "Extraction failed"
-        pause
-        exit 1
+        throw "Extraction failed"
     }
 }
 Write-OK ""

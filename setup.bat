@@ -18,6 +18,16 @@ cd /d "%ROOT%"
 rem ── UTF-8 console ─────────────────────────────────────────
 chcp 65001 >nul 2>&1
 
+rem ── Early exit if already completed ──────────────────────
+if exist "data\.lockhead" (
+    echo.
+    echo  [INFO] Setup already completed.
+    echo  Delete "data\.lockhead" to re-run setup.
+    echo.
+    timeout /t 2 /nobreak >nul
+    exit /b 0
+)
+
 rem ── Banner ────────────────────────────────────────────────
 echo.
 echo  This script will build the requirement components

@@ -57,7 +57,7 @@ try {
 try {
     Write-Status "Metode 3: .NET System.IO.Compression..."
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($Zip, $Dest, $true)
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($Zip, $Dest)
     Write-Status "Extract success (.NET ZipFile)"
     Write-Status "EXTRACT_SUCCESS"
     exit 0

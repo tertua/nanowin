@@ -139,11 +139,11 @@ Write-Host "  $('=' * 49)" -ForegroundColor Red
     exit 1
 }
 
-# ===== FINAL CLEANUP - SKIPPED (debug mode) =====
-Write-Info "Cleanup skipped - app/ and tmp/ preserved for inspection."
-# Remove-Item -Path $APP_DIR -Recurse -Force -ErrorAction Stop
-Remove-Item -Path $TMP_DIR -Recurse -Force -ErrorAction Stop
-Write-OK "Cleanup skipped."
+# ===== FINAL CLEANUP =====
+Write-Info "Cleanup: removing tmp/ contents..."
+Remove-Item -Path "$TMP_DIR\*" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$TMP_DIR\.*" -Recurse -Force -ErrorAction SilentlyContinue
+Write-OK "Cleanup done. app/ preserved."
 
 # ===== VERIFICATION =====
 Write-Header ""

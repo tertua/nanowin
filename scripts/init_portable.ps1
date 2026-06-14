@@ -114,6 +114,9 @@ function Load-EnvEncrypted {
     $EnvTmpFile = Join-Path $DataDir ".env.tmp"
     $EnvPlain   = Join-Path $DataDir ".env"
 
+    # Delete stale .env.tmp from previous failed decryption
+    if (Test-Path $EnvTmpFile) { Remove-Item -Path $EnvTmpFile -Force }
+
     if (Test-Path $EnvFileEnc) {
         if (Test-Path $EnvKeyFile) {
             $env:NANOBOT_ENV_KEY = (Get-Content -Path $EnvKeyFile -TotalCount 1).Trim()
@@ -121,6 +124,7 @@ function Load-EnvEncrypted {
         } else {
             & $Python (Join-Path $Root "scripts\env_crypt.py") load
         }
+        if ($LASTEXITCODE -ne 0) { return $false }
         if (Test-Path $EnvTmpFile) {
             _Set-EnvFromLines (Get-Content -Path $EnvTmpFile)
             Remove-Item -Path $EnvTmpFile -Force
@@ -128,4 +132,5 @@ function Load-EnvEncrypted {
     } elseif (Test-Path $EnvPlain) {
         _Set-EnvFromLines (Get-Content -Path $EnvPlain)
     }
+    return $true
 }

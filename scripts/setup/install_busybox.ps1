@@ -12,11 +12,7 @@ if (Test-Path $BBExe) {
     Write-Info "Download BusyBox ($BBArch)..."
     Download-Helper -Url $BBUrl -Out $BBExe
     if (-not (Test-Path $BBExe)) {
-        Write-Error "Failed to download BusyBox!"
-        Write-Info "Manual download: $BBUrl"
-        Write-Info "Save to: $BBExe"
-        pause
-        exit 1
+        throw "Failed to download BusyBox!`nManual download: $BBUrl`nSave to: $BBExe"
     }
     $fi = Get-Item $BBExe
     Write-Info "File size: $($fi.Length) bytes"

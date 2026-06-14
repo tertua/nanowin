@@ -14,20 +14,14 @@ if (Test-Path $PythonExe) {
     Write-Info "Download Python $PyVer ($PyArch)..."
     Download-Helper -Url $PyUrl -Out $PyZip
     if (-not (Test-Path $PyZip)) {
-        Write-Error "Failed to download Python!"
-        Write-Info "Manual download: $PyUrl"
-        Write-Info "Save to: $PyZip"
-        pause
-        exit 1
+        throw "Failed to download Python!`nManual download: $PyUrl`nSave to: $PyZip"
     }
     $fi = Get-Item $PyZip
     Write-Info "File size: $($fi.Length) bytes"
     Write-Info "Extracting..."
     Extract-Helper -Zip $PyZip -Dest $PY_DIR
     if (-not (Test-Path $PythonExe)) {
-        Write-Error "Failed to extract Python!"
-        pause
-        exit 1
+        throw "Failed to extract Python!"
     }
     Write-Info "Patching ._pth..."
     Get-ChildItem -Path $PY_DIR -Filter "*._pth" | ForEach-Object {
@@ -54,16 +48,12 @@ if ($pipExists) {
     Write-Info "Download get-pip.py..."
     Download-Helper -Url "https://bootstrap.pypa.io/get-pip.py" -Out $GetPip
     if (-not (Test-Path $GetPip)) {
-        Write-Error "Failed to download get-pip.py"
-        pause
-        exit 1
+        throw "Failed to download get-pip.py"
     }
     Write-Info "Installing pip..."
     & $PythonExe $GetPip --no-warn-script-location
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "Failed to install pip"
-        pause
-        exit 1
+        throw "Failed to install pip"
     }
     Write-Info "pip installed:"
     & $PythonExe -m pip --version

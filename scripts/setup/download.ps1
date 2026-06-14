@@ -14,7 +14,7 @@ param(
     [int]$TimeoutSec = 300
 )
 
- $ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 function Write-Status($msg) {
     Write-Host "  PS: $msg"
@@ -33,7 +33,9 @@ function Download-File($url, $out) {
     # Metode 1: Invoke-WebRequest
     try {
         Write-Status "Metode 1: Invoke-WebRequest..."
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $protocols = [Net.SecurityProtocolType]::Tls12
+        try { $protocols = $protocols -bor [Net.SecurityProtocolType]::Tls13 } catch {}
+        [Net.ServicePointManager]::SecurityProtocol = $protocols
         $ProgressPreference = 'SilentlyContinue'
         Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing -TimeoutSec $TimeoutSec
         if (Test-Path $out) {
@@ -100,7 +102,7 @@ function Download-File($url, $out) {
 
 # ===== MAIN =====
 Write-Status "Starting download..."
- $result = Download-File -url $Url -out $Out
+$result = Download-File -url $Url -out $Out
 
 if ($result) {
     Write-Status "DOWNLOAD_SUCCESS"

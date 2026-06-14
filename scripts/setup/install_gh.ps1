@@ -16,9 +16,7 @@ if (Test-Path $GhExe) {
     $GhZip = Join-Path $TMP_DIR "gh_${GhVer}_windows_${ArchGh}.zip"
     Download-Helper -Url $GhUrl -Out $GhZip
     if (-not (Test-Path $GhZip)) {
-        Write-Error "Failed to download gh!"
-        pause
-        exit 1
+        throw "Failed to download gh!"
     }
     Write-Info "Extracting..."
     $GhDir = Join-Path $ROOT "bin\gh"
@@ -29,10 +27,8 @@ if (Test-Path $GhExe) {
         Write-Info "gh installed successfully."
         $GhReady = $true
     } else {
-        Write-Error "gh extraction failed!"
         if (Test-Path $GhDir) { Remove-Item -Path $GhDir -Recurse -Force }
-        pause
-        exit 1
+        throw "gh extraction failed!"
     }
 }
 if ($GhReady) {

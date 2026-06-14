@@ -17,9 +17,7 @@ if (Test-Path (Join-Path $ROOT "bin\git\cmd\git.exe")) {
     $GitZip = Join-Path $TMP_DIR "MinGit-${GitVer}-${ArchMinGit}.zip"
     Download-Helper -Url $GitUrl -Out $GitZip
     if (-not (Test-Path $GitZip)) {
-        Write-Error "Failed to download MinGit!"
-        pause
-        exit 1
+        throw "Failed to download MinGit!"
     }
     Write-Info "Extracting..."
     $GitDir = Join-Path $ROOT "bin\git"
@@ -37,10 +35,8 @@ if (Test-Path (Join-Path $ROOT "bin\git\cmd\git.exe")) {
         }
     }
     if (-not $GitReady) {
-        Write-Error "MinGit extraction failed!"
         if (Test-Path $GitDir) { Remove-Item -Path $GitDir -Recurse -Force }
-        pause
-        exit 1
+        throw "MinGit extraction failed!"
     }
     $env:PATH = "$ROOT\bin\nodejs;$ROOT\bin\git\cmd;$ROOT\bin\git\$MinGwDir;$env:PATH"
 }

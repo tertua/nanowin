@@ -66,36 +66,32 @@ def detect_software(root: str) -> dict[str, str]:
         if m:
             sw["nanobot"] = m.group(1)
 
-    # Git (portable first)
+    # Git (portable only)
     git_exe = os.path.join(git_dir, "git.exe")
-    if not os.path.isfile(git_exe):
-        git_exe = "git.exe"
-    ver = _run([git_exe, "--version"])
-    if ver:
-        m = re.search(r"(\d+\.\d+\.\d+)", ver)
-        if m:
-            sw["git"] = m.group(1)
+    if os.path.isfile(git_exe):
+        ver = _run([git_exe, "--version"])
+        if ver:
+            m = re.search(r"(\d+\.\d+\.\d+)", ver)
+            if m:
+                sw["git"] = m.group(1)
 
-    # Node.js (portable first)
+    # Node.js (portable only)
     node_exe = os.path.join(nodejs_dir, "node.exe")
-    if not os.path.isfile(node_exe):
-        node_exe = "node.exe"
-    ver = _run([node_exe, "--version"])
-    if ver:
-        m = re.search(r"v(\d+\.\d+\.\d+)", ver)
-        if m:
-            sw["nodejs"] = m.group(1)
+    if os.path.isfile(node_exe):
+        ver = _run([node_exe, "--version"])
+        if ver:
+            m = re.search(r"v(\d+\.\d+\.\d+)", ver)
+            if m:
+                sw["nodejs"] = m.group(1)
 
-    # GitHub CLI (portable first)
+    # GitHub CLI (portable only)
     gh_exe = os.path.join(gh_dir, "gh.exe")
-    if not os.path.isfile(gh_exe):
-        gh_exe = "gh.exe"
-    ver = _run([gh_exe, "--version"])
-    if ver:
-        # "gh version 2.93.0 (2026-01-15)\nhttps://..."
-        m = re.search(r"(\d+\.\d+\.\d+)", ver)
-        if m:
-            sw["gh"] = m.group(1)
+    if os.path.isfile(gh_exe):
+        ver = _run([gh_exe, "--version"])
+        if ver:
+            m = re.search(r"(\d+\.\d+\.\d+)", ver)
+            if m:
+                sw["gh"] = m.group(1)
 
     # Windows PowerShell (built-in)
     ps_exe = "powershell.exe"

@@ -17,9 +17,7 @@ if (Test-Path $NodeExe) {
     $NodeZip = Join-Path $TMP_DIR "node-v$NodeVer-win-$ArchNode.zip"
     Download-Helper -Url $NodeZipUrl -Out $NodeZip
     if (-not (Test-Path $NodeZip)) {
-        Write-Error "Failed to download Node.js!"
-        pause
-        exit 1
+        throw "Failed to download Node.js!"
     }
     Write-Info "Extracting..."
     if (Test-Path $NodeDir) { Remove-Item -Path $NodeDir -Recurse -Force }
@@ -38,10 +36,8 @@ if (Test-Path $NodeExe) {
         }
     }
     if (-not $NodeReady) {
-        Write-Error "Node.js extraction failed!"
         if (Test-Path $NodeDir) { Remove-Item -Path $NodeDir -Recurse -Force }
-        pause
-        exit 1
+        throw "Node.js extraction failed!"
     }
 }
 if ($NodeReady) {

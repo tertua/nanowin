@@ -97,7 +97,11 @@ try {
 }
 
 # -- Load .env (AES-GCM scrypt) --------------------------------------
-Load-EnvEncrypted -Root $ROOT -DataDir $DATA_DIR -Python $PY
+if (-not (Load-EnvEncrypted -Root $ROOT -DataDir $DATA_DIR -Python $PY)) {
+    Write-Host "`n  [ERROR] Failed to decrypt .env.encrypted" -ForegroundColor Red
+    Write-Host "  Run edit_env.bat to set up your API key.`n" -ForegroundColor Red
+    exit 1
+}
 
 # -- Browser URL -----------------------------------------------------
 Write-Host "`n"
