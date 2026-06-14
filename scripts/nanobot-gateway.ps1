@@ -17,18 +17,19 @@ $WORKSPACE = Join-Path $DATA_DIR "workspace"
 # -- Read ports from config.json --------------------------------------
 $HTTP_PORT = $null
 $WS_PORT   = $null
+$WS_HOST   = $null
 try {
     $cfg = Get-Content -Path $CONFIG -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($cfg.api -and $cfg.api.port)                       { $HTTP_PORT = [int]$cfg.api.port }
     if ($cfg.channels.websocket -and $cfg.channels.websocket.port) { $WS_PORT   = [int]$cfg.channels.websocket.port }
+	if ($cfg.channels.websocket -and $cfg.channels.websocket.host) { $WS_HOST = $cfg.channels.websocket.host }
 } catch {
     Write-Warning "Could not read ports from $CONFIG : $($_.Exception.Message). Using defaults."
 }
 
 if (-not $HTTP_PORT) { $HTTP_PORT = 8900 }
 if (-not $WS_PORT)   { $WS_PORT   = 8765 }
-
-$WS_HOST = "127.0.0.1"
+if (-not $WS_HOST)   { $WS_HOST   = "127.0.0.1" }
 
 # -- Check Python ----------------------------------------------------
 if (-not (Test-Path $PY)) {
