@@ -73,16 +73,14 @@ $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action { Stop
 Stop-GatewayProcess
 
 # -- Banner ----------------------------------------------------------
-Write-Host "`n"
-Write-Host "  $('=' * 49)" -ForegroundColor Cyan
-Write-Host "       NANOBOT GATEWAY" -ForegroundColor Cyan
-Write-Host "  $('=' * 49)" -ForegroundColor Cyan
-Write-Host "`n"
+Write-Host "  $('=' * 47)" -ForegroundColor Cyan
+Write-Host "            NANOBOT GATEWAY" -ForegroundColor Red
+Write-Host "  $('=' * 47)" -ForegroundColor Cyan
 
 Write-Host "  Home  : $NANOBOT_HOME" -ForegroundColor Green
 Write-Host "  Conf  : $CONFIG" -ForegroundColor Green
 Write-Host "  Works : $WORKSPACE" -ForegroundColor Green
-Write-Host "`n"
+Write-Host "  $('-' * 47)" -ForegroundColor White
 Write-Host "  Host  : $WS_HOST" -ForegroundColor Green
 Write-Host "  HTTP  : $HTTP_PORT" -ForegroundColor Green
 Write-Host "  WS    : $WS_PORT" -ForegroundColor Green
@@ -105,10 +103,8 @@ if (-not (Load-EnvEncrypted -Root $ROOT -DataDir $DATA_DIR -Python $PY)) {
 }
 
 # -- Browser URL -----------------------------------------------------
-Write-Host "`n"
 Write-Host "  Browser: http://$WS_HOST`:$WS_PORT" -ForegroundColor Green
-Write-Host "`n"
-
+Write-Host ""
 Write-Host "  HTTP Port : $HTTP_PORT (for Health/API)" -ForegroundColor Gray
 Write-Host "  WS Port   : $WS_PORT (for WebSocket/UI)" -ForegroundColor Gray
 Write-Host "`n"
@@ -125,7 +121,7 @@ try {
 }
 
 if ($exitCode -eq 0) {
-    Write-Host "  Nanobot Gateway Stopped." -ForegroundColor Cyan
+    Write-Host "  Nanobot Gateway Stopped." -ForegroundColor Yellow
 } else {
     Write-Host "  Nanobot Gateway stopped with error code: $exitCode" -ForegroundColor Red
 }
