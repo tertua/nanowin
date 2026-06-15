@@ -22,7 +22,7 @@ node_modules/
 !/edit_env.bat
 !/build-webui.bat
 !/start-chat.bat
-!/start-gateway.vbs
+!/start-gateway.bat
 
 # All Markdown
 !/README.md
