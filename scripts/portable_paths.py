@@ -11,7 +11,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT = SCRIPT_DIR.parent
 
-# ── Find target directory ──────────────────────────────────────────
+# -- Find target directory ------------------------------------------
 candidates = [
     ROOT / "app" / "nanobot" / "config",
     ROOT / "bin" / "Lib" / "site-packages" / "nanobot" / "config",
@@ -31,7 +31,7 @@ if target is None:
 
 print(f"Target: {target}")
 
-# ── Helper ─────────────────────────────────────────────────────────
+# -- Helper ---------------------------------------------------------
 def patch_file(filename: str, patcher) -> int:
     """Read file, call patcher(content), write back if changed."""
     path = target / filename
@@ -145,7 +145,7 @@ def _patch_log_handlers(content: str, cond_var: str, old_upstream: str, new_bloc
     print(f"  [WARN] {label}: pattern not found — version mismatch?")
     return content, 0
 
-# ── 1. paths.py ────────────────────────────────────────────────────
+# -- 1. paths.py ----------------------------------------------------
 def patch_paths(content: str) -> tuple[str, int]:
     c, changed = content, 0
     patterns = [
@@ -172,7 +172,7 @@ def patch_paths(content: str) -> tuple[str, int]:
 
 paths_changed = patch_file("paths.py", patch_paths)
 
-# ── 2. loader.py ───────────────────────────────────────────────────
+# -- 2. loader.py ---------------------------------------------------
 def patch_loader(content: str) -> tuple[str, int]:
     old = """def get_config_path() -> Path:
     \"\"\"Get the configuration file path.\"\"\"
@@ -194,7 +194,7 @@ def patch_loader(content: str) -> tuple[str, int]:
 
 loader_changed = patch_file("loader.py", patch_loader)
 
-# ── 3. schema.py ───────────────────────────────────────────────────
+# -- 3. schema.py ---------------------------------------------------
 def patch_schema(content: str) -> tuple[str, int]:
     return simple_replace(
         content,
@@ -206,7 +206,7 @@ def patch_schema(content: str) -> tuple[str, int]:
 schema_changed = patch_file("schema.py", patch_schema)
 
 
-# ── 4. commands.py ─────────────────────────────────────────────────
+# -- 4. commands.py -------------------------------------------------
 # commands.py is at nanobot/cli/commands.py, not nanobot/config/.
 COMMANDS_TARGETS = [
     ROOT / "app" / "nanobot" / "cli" / "commands.py",
@@ -385,7 +385,7 @@ if commands_target:
 else:
     commands_changed = 0
 
-# ── 5. helpers.py ──────────────────────────────────────────────────
+# -- 5. helpers.py --------------------------------------------------
 HELPERS_TARGETS = [
     ROOT / "app" / "nanobot" / "utils" / "helpers.py",
     ROOT / "bin" / "Lib" / "site-packages" / "nanobot" / "utils" / "helpers.py",
@@ -440,7 +440,7 @@ if helpers_target:
     else:
         print("  -> No changes to helpers.py")
 
-# ── Summary ────────────────────────────────────────────────────────
+# -- Summary --------------------------------------------------------
 total = paths_changed + loader_changed + schema_changed + commands_changed + helpers_changed
 print(f"\nDone. {total} file(s) patched.")
 if total:

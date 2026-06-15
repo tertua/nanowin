@@ -17,7 +17,7 @@ if (-not $SrcOk) {
         if ($LASTEXITCODE -eq 0) {
             Write-Info "Cloning repository..."
             if (Test-Path $APP_DIR) { Remove-Item -Path $APP_DIR -Recurse -Force }
-            & git clone --depth 1 --single-branch --branch main https://github.com/HKUDS/nanobot.git $APP_DIR
+            & git clone --depth 1 --single-branch --branch master https://github.com/tertua/nanobot.git $APP_DIR
             if ($LASTEXITCODE -eq 0) {
                 Write-OK "Clone successful."
                 $SrcOk = $true
@@ -28,9 +28,9 @@ if (-not $SrcOk) {
     } catch {}
 }
 if (-not $SrcOk) {
-    $RepoZip = Join-Path $TMP_DIR "nanobot-main.zip"
+    $RepoZip = Join-Path $TMP_DIR "nanobot-master.zip"
     Write-Info "Download ZIP..."
-    Download-Helper -Url "https://github.com/HKUDS/nanobot/archive/refs/heads/main.zip" -Out $RepoZip
+    Download-Helper -Url "https://github.com/tertua/nanobot/archive/refs/heads/master.zip" -Out $RepoZip
     if (-not (Test-Path $RepoZip)) {
         throw "Failed to download source code!"
     }

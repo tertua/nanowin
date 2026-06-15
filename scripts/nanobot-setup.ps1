@@ -38,7 +38,7 @@ $NodeVer    = "24.16.0"
 $GhVer      = "2.93.0"
 
 Write-Host "  $('=' * 49)" -ForegroundColor Cyan
-Write-Host "       NANOBOT Portable Setup - Simata.id" -ForegroundColor Cyan
+Write-Host "       NANOBOT Portable Setup - Nanowin" -ForegroundColor Cyan
 Write-Host "  $('=' * 49)" -ForegroundColor Cyan
 Write-Host "  Folder: $ROOT"
 Write-Host ""
