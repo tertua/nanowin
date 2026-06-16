@@ -28,10 +28,9 @@ if (-not (Test-Path $CONFIG)) {
 }
 
 # -- Banner ----------------------------------------------------------
-Write-Host "`n"
-Write-Host "  $('=' * 49)" -ForegroundColor Cyan
-Write-Host "       NANOBOT PORTABLE - Simata.id" -ForegroundColor Cyan
-Write-Host "  $('=' * 49)" -ForegroundColor Cyan
+Write-Host "  $('=' * 47)" -ForegroundColor Cyan
+Write-Host "            NANOBOT Agent" -ForegroundColor Cyan
+Write-Host "  $('=' * 47)" -ForegroundColor Cyan
 Write-Host "`n"
 
 # -- Load .env (AES-GCM scrypt) --------------------------------------
@@ -51,11 +50,11 @@ try {
 
 # -- Info ------------------------------------------------------------
 Write-Host "  $('=' * 47)" -ForegroundColor Cyan
-Write-Host "`n"
+Write-Host ""
 Write-Host "  Home  : $NANOBOT_HOME" -ForegroundColor Green
 Write-Host "  Conf  : $CONFIG" -ForegroundColor Green
 Write-Host "  Works : $WORKSPACE" -ForegroundColor Green
-Write-Host "`n"
+Write-Host ""
 Write-Host "  $('=' * 47)" -ForegroundColor Cyan
 Write-Host "`n  Type your command, Press ESC+ENTER`n" -ForegroundColor Yellow
 
