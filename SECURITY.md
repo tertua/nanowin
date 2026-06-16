@@ -1,15 +1,8 @@
 # Security Policy
 
-## Supported Versions
-
-| Version | Branch | Supported |
-|---------|--------|-----------|
-| Lite (latest) | `lite` | ✅ |
-| Full | `main` | ✅ |
-
 ## Reporting a Vulnerability
 
-Open an issue at https://github.com/tertua/nanobot-usb/issues
+Open an issue at https://github.com/tertua/nanowin/issues
 
 Do not open a public issue if the vulnerability exposes API keys or allows remote code execution. Use a private report instead.
 
