@@ -17,12 +17,10 @@ import re
 import shutil
 import sys
 
-
 _ENV_REF_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 # Skills not usable on Windows host. See AGENTS.md "Skills auto-disabled by Lite".
 _LITE_DISABLED_SKILLS = ["summarize", "tmux"]
-
 
 def collect_env_refs(config: dict) -> list[str]:
     """Walk config, return sorted list of all ${VAR} names found in string values."""
@@ -41,7 +39,6 @@ def collect_env_refs(config: dict) -> list[str]:
 
     walk(config)
     return sorted(refs)
-
 
 def sync_env_template(env_path: str, expected_vars: list[str]) -> None:
     """Ensure .env has every VAR referenced by config. Append VAR=null for missing.
@@ -79,7 +76,6 @@ def sync_env_template(env_path: str, expected_vars: list[str]) -> None:
     else:
         print(f"[OK] .env created: {len(existing)} entries from config references")
 
-
 def main():
     if len(sys.argv) < 3:
         print("Usage: post_config.py <config_path> <root_dir>")
@@ -110,7 +106,7 @@ def main():
         "apiKey": "${NANOBOT_CUSTOM_API_KEY}",
         "apiBase": "${NANOBOT_CUSTOM_API_BASE}",
         "apiType": "auto"
-    } 
+    }
     config['providers']['nvidia'] = {
         "apiKey": "${NVIDIA_NIM_API_KEY}"
     }
@@ -157,7 +153,6 @@ def main():
         print("[INFO] No ${VAR} references in config; .env not touched")
 
     print(f"[OK] Config post-processed: {config_path}")
-
 
 if __name__ == '__main__':
     main()
