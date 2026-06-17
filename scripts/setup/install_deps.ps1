@@ -25,6 +25,41 @@ if (Test-Path $PyProject) {
 }
 Write-OK ""
 
+# ===== PATCH OPENAI SDK (Surrogate Fix) =====
+Write-Info "Patching OpenAI SDK for emoji support..."
+$OpenAIJsonPath = Join-Path $PY_DIR "Lib\site-packages\openai\_utils\_json.py"
+
+if (Test-Path $OpenAIJsonPath) {
+    try {
+        $content = Get-Content $OpenAIJsonPath -Raw -Encoding UTF8
+        
+        # Check if already patched
+        if ($content -match 'ensure_ascii=True' -and $content -match "encode\('utf-8', errors='replace'\)") {
+            Write-OK "OpenAI SDK already patched (emoji safe)"
+        } else {
+            # Backup original
+            $backupPath = "$OpenAIJsonPath.backup"
+            if (-not (Test-Path $backupPath)) {
+                Copy-Item $OpenAIJsonPath $backupPath -Force
+                Write-Info "Backup created: _json.py.backup"
+            }
+            
+            # Apply patch (simple replacement)
+            $content = $content -replace 'ensure_ascii=False,', 'ensure_ascii=True,'
+            $content = $content -replace '\.encode\(\)', ".encode('utf-8', errors='replace')"
+            
+            Set-Content $OpenAIJsonPath $content -Encoding UTF8 -NoNewline
+            Write-OK "OpenAI SDK patched successfully (emoji safe)"
+        }
+    } catch {
+        Write-Warn "Failed to patch OpenAI SDK: $($_.Exception.Message)"
+        Write-Warn "Emoji support may be unstable. Manual patch available in scripts/patch-openai/"
+    }
+} else {
+    Write-Warn "OpenAI SDK _json.py not found at: $OpenAIJsonPath"
+    Write-Warn "If using OpenAI provider, emoji may cause crashes"
+}
+
 Write-OK ""
 Write-Header "  ----------------------------------------"
 Write-Header "  Installed packages:"
