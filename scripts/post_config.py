@@ -110,12 +110,18 @@ def main():
         "apiKey": "${NANOBOT_CUSTOM_API_KEY}",
         "apiBase": "${NANOBOT_CUSTOM_API_BASE}",
         "apiType": "auto"
+    } 
+    config['providers']['nvidia'] = {
+        "apiKey": "${NVIDIA_NIM_API_KEY}"
+    }
+    config['providers']['aihubmix'] = {
+        "apiKey": "${AIHUBMIX_API_KEY}"
     }
 
     # === agents.defaults ===
     defaults = config.get('agents', {}).get('defaults', {})
-    defaults['model'] = 'sengkuni-1.0'
-    defaults['provider'] = 'custom'
+    defaults['model'] = 'openai/gpt-oss-120b'
+    defaults['provider'] = 'nvidia'
     # Don't override workspace if user already set it
 
     existing = defaults.get('disabledSkills', [])
