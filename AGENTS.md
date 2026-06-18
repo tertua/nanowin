@@ -12,7 +12,7 @@ Windows-portable runtime for [HKUDS/nanobot](https://github.com/HKUDS/nanobot). 
 | `setup.bat` | One-shot install. Delete `data\.lockhead` to re-run. |
 | `edit_env.bat` | Decrypt → notepad → re-encrypt. |
 | `start-chat.bat` | CLI chat via `scripts\nanobot-agent.ps1`. |
-| `start-gateway.bat` / `start-gateway.vbs` | Web gateway (WebUI :8765, API :8900). `.vbs` bypasses cmd.exe. |
+| `start-gateway.bat` | Web gateway (WebUI :8765, API :8900). |
 | `build-webui.bat` | npm install + build in `app\webui`, copy to site-packages. |
 | `bin\python.exe scripts\healthcheck.py` | Post-install verification. |
 
@@ -33,7 +33,8 @@ scripts/
   env_crypt.py         # AES-256-GCM + scrypt (encrypt/load/decrypt). --noninteractive uses NANOBOT_ENV_KEY.
   portable_paths.py    # Patches upstream nanobot source to never use ~/.nanobot.
                        # Targets: paths.py, loader.py, schema.py, cli/commands.py, utils/helpers.py.
-  post_config.py       # Post-processes nanobot onboard config: custom provider w/ ${VAR}, disabledSkills, restrictToWorkspace.
+  post_config.py       # Post-processes nanobot onboard config: adds custom/nvidia/aihubmix providers w/ ${VAR},
+                       # CLI channel, disabledSkills, restrictToWorkspace.
   lockhead.py          # Writes .lockhead INI with host metadata (system + software sections).
   resolve_workspace.py # Reads workspace path from config.json; called by agent/gateway launchers.
   requirements-lite.txt # Pip dependency manifest (no pyproject.toml extras).
@@ -47,6 +48,7 @@ scripts/
     setup_helpers.ps1    # Write-OK, Write-Step, Download-Helper, Extract-Helper
     download.ps1         # 3-method fallback
     extract.ps1          # 4-method fallback
+  templates/           # Custom workspace templates (check NANOBOT_HOME/../scripts/templates/ first via patched helpers.py)
 app/   # Upstream nanobot source; git clone or ZIP extract (gitignored)
 bin/   # Portable BusyBox, Python, MinGit, Node.js, gh (gitignored)
 data/  # config.json, .env.encrypted, .env_key, .lockhead, knowledge/, logs/, workspace/ (gitignored)
@@ -54,9 +56,9 @@ data/  # config.json, .env.encrypted, .env_key, .lockhead, knowledge/, logs/, wo
 
 ## Critical conventions
 
-- **Whitelist `.gitignore`.** Starts with `/*` — add `!/path` for new tracked files. Tracked: `setup.bat`, `start-chat.bat`, `edit_env.bat`, `build-webui.bat`, `start-gateway.vbs`, `scripts/**`, `README.md`, `SECURITY.md`, `AGENTS.md`, `LICENSE`, `.github/`, `.gitattributes`, `.gitignore`. Note `start-gateway.bat` exists but is gitignored; the `.vbs` is the tracked launcher.
+- **Whitelist `.gitignore`.** Starts with `/*` — add `!/path` for new tracked files. Tracked: `setup.bat`, `start-chat.bat`, `edit_env.bat`, `build-webui.bat`, `start-gateway.bat`, `scripts/**`, `README.md`, `SECURITY.md`, `AGENTS.md`, `LICENSE`, `.github/`, `.github/FUNDING.yml`, `.gitattributes`, `.gitignore`.
 - **Line endings.** `.ps1`/`.bat`/`.vbs`/`.cmd` are CRLF (PS5.1 chokes on LF). `.py`/`.md`/`.json`/`.yml`/`.toml`/`.txt` are LF.
-- **Hard-coded versions in `nanobot-setup.ps1`** (`$PyVer=3.12.0`, `$GitVer=2.54.0`, `$NodeVer=24.16.0`, `$GhVer=2.93.0`). Bump there — no manifest.
+- **Hard-coded versions in `nanobot-setup.ps1`** (`$PyVer=3.12.3`, `$GitVer=2.54.0`, `$NodeVer=24.16.0`, `$GhVer=2.93.0`). Bump there — no manifest.
 - **BusyBox single EXE** from `frippery.org/files/busybox/`. No archive; `Download-Helper` saves to `bin\busybox.exe`.
 - **Python embed `.pth` patching** (`install_python.ps1`): uncomments `import site`, appends `Lib`, `Lib\site-packages`, `..\app`. Without this, pip and app/ imports fail.
 - **`.env` encrypted at rest** (AES-256-GCM + scrypt). `edit_env.bat` is the only plaintext path. Launchers use `Load-EnvEncrypted` → `env_crypt.py load` → `.env.tmp` → process env → delete `.env.tmp`. Never commit a key.
@@ -64,7 +66,7 @@ data/  # config.json, .env.encrypted, .env_key, .lockhead, knowledge/, logs/, wo
 - **`data\.lockhead`** = setup-done sentinel (INI file). Short-circuits `nanobot-setup.ps1`. Delete to reset.
 - **`NANOBOT_HOME`** overrides `~/.nanobot`. Set in `init_portable.ps1` to `data/`.
 - **New launchers must** define `$ROOT`, dot-source `scripts/init_portable.ps1`, call `Load-EnvEncrypted`. Don't inline.
-- **Default config** (`post_config.py`): `model: sengkuni-1.0`, `provider: custom` (uses `${NANOBOT_CUSTOM_API_KEY}` + `${NANOBOT_CUSTOM_API_BASE}`), `disabledSkills: ["summarize", "tmux"]`, `restrictToWorkspace: true`. `pathAppend` left empty — PATH inherited from parent process (correct regardless of USB drive letter/workspace location).
+- **Default config** (`post_config.py`): `model: openai/gpt-oss-120b`, `provider: nvidia`, `disabledSkills: ["summarize", "tmux"]`, `restrictToWorkspace: true`. Also registers `custom` (uses `${NANOBOT_CUSTOM_API_KEY}` + `${NANOBOT_CUSTOM_API_BASE}`) and `aihubmix` providers. `pathAppend` left empty — PATH inherited from parent process (correct regardless of USB drive letter/workspace location).
 - **Gateway ports.** WebUI/WS on :8765, API :8900 (`/v1/chat/completions`, `/v1/models`). External tools use `:8900` as OpenAI API base.
 - **Custom workspace templates** (`scripts/templates/`). `portable_paths.py` patches `sync_workspace_templates()` to check `{NANOBOT_HOME}/../scripts/templates/` first. Falls back to upstream defaults silently if templates dir missing.
 - **Patches upstream source** (`portable_paths.py`). Rewrites `paths.py`, `loader.py`, `schema.py`, `cli/commands.py`, `utils/helpers.py`. Logs `[WARN] pattern not found` for misses — check after upstream bump. The `commands.py` log-handler patch is post-condition-checked (sentinels: `logger.remove()` + `"DEBUG" if X else "INFO"` + `level="DEBUG", rotation="1 day"`).
@@ -74,7 +76,6 @@ data/  # config.json, .env.encrypted, .env_key, .lockhead, knowledge/, logs/, wo
 - **`.bat` files are thin wrappers** — check `where powershell`, call `.ps1`, pause on error. Don't edit for logic.
 - **Language rule.** Chat output to user: formal Indonesian. Everything else (code, comments, docs, logs, variable names): English. No exceptions, no mix.
 - **Cleanup note.** `nanobot-setup.ps1` removes `$TMP_DIR` but preserves `$APP_DIR`. Don't re-enable the `$APP_DIR` Remove-Item.
-
 - **No commit/push without explicit approval.** Never stage, commit, amend, or push unless the user explicitly requests it. Wait for a direct command.
 
 ## Upstream repo
