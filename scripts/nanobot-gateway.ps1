@@ -72,9 +72,17 @@ $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action { Stop
 # -- Kill any stale processes on target ports -----------------------
 Stop-GatewayProcess
 
+# -- Resolve workspace from config.json ------------------------------
+try {
+    $resolved = Resolve-Workspace -ConfigPath $CONFIG
+    if ($resolved) { $WORKSPACE = $resolved }
+} catch {
+    # fallback: keep default WORKSPACE
+}
+
 # -- Banner ----------------------------------------------------------
 Write-Host "  $('=' * 47)" -ForegroundColor Cyan
-Write-Host "            NANOBOT GATEWAY" -ForegroundColor Red
+Write-Host "                NANOBOT GATEWAY" -ForegroundColor Red
 Write-Host "  $('=' * 47)" -ForegroundColor Cyan
 
 Write-Host "  Home  : $NANOBOT_HOME" -ForegroundColor Green
@@ -86,14 +94,6 @@ Write-Host "  HTTP  : $HTTP_PORT" -ForegroundColor Green
 Write-Host "  WS    : $WS_PORT" -ForegroundColor Green
 Write-Host "  $('=' * 47)" -ForegroundColor Cyan
 Write-Host "`n  Please wait..." -ForegroundColor Yellow
-
-# -- Resolve workspace from config.json ------------------------------
-try {
-    $resolved = Resolve-Workspace -ConfigPath $CONFIG
-    if ($resolved) { $WORKSPACE = $resolved }
-} catch {
-    # fallback: keep default WORKSPACE
-}
 
 # -- Load .env (AES-GCM scrypt) --------------------------------------
 if (-not (Load-EnvEncrypted -Root $ROOT -DataDir $DATA_DIR -Python $PY)) {
