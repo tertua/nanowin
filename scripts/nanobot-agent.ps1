@@ -29,7 +29,7 @@ if (-not (Test-Path $CONFIG)) {
 
 # -- Banner ----------------------------------------------------------
 Write-Host "  $('=' * 47)" -ForegroundColor Cyan
-Write-Host "            NANOBOT Agent" -ForegroundColor Cyan
+Write-Host "               NANOBOT Agent" -ForegroundColor Red
 Write-Host "  $('=' * 47)" -ForegroundColor Cyan
 Write-Host "`n"
 
