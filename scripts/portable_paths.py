@@ -440,8 +440,74 @@ if helpers_target:
     else:
         print("  -> No changes to helpers.py")
 
+# -- 6. memory.py ---------------------------------------------------
+MEMORY_TARGETS = [
+    ROOT / "app" / "nanobot" / "agent" / "memory.py",
+    ROOT / "bin" / "Lib" / "site-packages" / "nanobot" / "agent" / "memory.py",
+]
+
+memory_target = None
+for p in MEMORY_TARGETS:
+    if p.exists():
+        memory_target = p
+        break
+
+if memory_target is None:
+    print("[ERROR] Cannot find nanobot/agent/memory.py.")
+else:
+    print(f"Memory file: {memory_target}")
+
+def patch_memory_init(content: str) -> tuple[str, int]:
+    c, changed = content, 0
+    patterns = [
+        (
+            '        self.memory_dir = ensure_dir(workspace / "memory")\n'
+            '        self.memory_file = self.memory_dir / "MEMORY.md"\n'
+            '        self.history_file = self.memory_dir / "history.jsonl"\n'
+            '        self.legacy_history_file = self.memory_dir / "HISTORY.md"\n'
+            '        self.soul_file = workspace / "SOUL.md"\n'
+            '        self.user_file = workspace / "USER.md"\n'
+            '        self._cursor_file = self.memory_dir / ".cursor"\n'
+            '        self._dream_cursor_file = self.memory_dir / ".dream_cursor"\n',
+            '        # Nanowin: pin memory to config workspace so memory survives workspace scope changes\n'
+            '        _mem_ws = Path(os.environ["NANOBOT_WORKSPACE"]) if "NANOBOT_WORKSPACE" in os.environ else Path(os.environ["NANOBOT_HOME"]) / "workspace" if "NANOBOT_HOME" in os.environ else workspace\n'
+            '        self.memory_dir = ensure_dir(_mem_ws / "memory")\n'
+            '        self.memory_file = self.memory_dir / "MEMORY.md"\n'
+            '        self.history_file = self.memory_dir / "history.jsonl"\n'
+            '        self.legacy_history_file = self.memory_dir / "HISTORY.md"\n'
+            '        self.soul_file = _mem_ws / "SOUL.md"\n'
+            '        self.user_file = _mem_ws / "USER.md"\n'
+            '        self._cursor_file = self.memory_dir / ".cursor"\n'
+            '        self._dream_cursor_file = self.memory_dir / ".dream_cursor"\n',
+            "memory.py __init__ pin memory paths to config workspace",
+        ),
+    ]
+    for old, new, label in patterns:
+        c, ch = simple_replace(c, old, new, label)
+        changed += ch
+    # GitStore must also track the config workspace, not the scoped one
+    c, ch = simple_replace(
+        c,
+        '        self._git = GitStore(workspace, tracked_files=[',
+        '        self._git = GitStore(_mem_ws, tracked_files=[',
+        "memory.py __init__ GitStore workspace",
+    )
+    changed += ch
+    return c, changed
+
+memory_changed = 0
+if memory_target:
+    content = memory_target.read_text("utf-8")
+    content, ch = patch_memory_init(content)
+    memory_changed += ch
+    if memory_changed:
+        memory_target.write_text(content, "utf-8")
+        print(f"  -> {memory_changed} patch(es) applied to memory.py")
+    else:
+        print("  -> No changes to memory.py")
+
 # -- Summary --------------------------------------------------------
-total = paths_changed + loader_changed + schema_changed + commands_changed + helpers_changed
+total = paths_changed + loader_changed + schema_changed + commands_changed + helpers_changed + memory_changed
 print(f"\nDone. {total} file(s) patched.")
 if total:
     print("Please restart nanobot to apply changes.")

@@ -134,3 +134,7 @@ function Load-EnvEncrypted {
     }
     return $true
 }
+
+# -- Set NANOBOT_WORKSPACE from config.json --------------------------
+$__ws = Resolve-Workspace
+if ($__ws) { $env:NANOBOT_WORKSPACE = $__ws }

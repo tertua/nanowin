@@ -32,7 +32,8 @@ scripts/
                        # Builds $PortablePaths, exports Load-EnvEncrypted.
   env_crypt.py         # AES-256-GCM + scrypt (encrypt/load/decrypt). --noninteractive uses NANOBOT_ENV_KEY.
   portable_paths.py    # Patches upstream nanobot source to never use ~/.nanobot.
-                       # Targets: paths.py, loader.py, schema.py, cli/commands.py, utils/helpers.py.
+                       # Targets: paths.py, loader.py, schema.py, cli/commands.py, utils/helpers.py,
+                       # agent/memory.py.
   post_config.py       # Post-processes nanobot onboard config: adds custom/nvidia/aihubmix providers w/ ${VAR},
                        # CLI channel, disabledSkills, restrictToWorkspace.
   lockhead.py          # Writes .lockhead INI with host metadata (system + software sections).
@@ -65,11 +66,12 @@ data/  # config.json, .env.encrypted, .env_key, .lockhead, knowledge/, logs/, wo
 - **`data\.env_key`** makes launcher non-interactive. Delete to force interactive passphrase prompt.
 - **`data\.lockhead`** = setup-done sentinel (INI file). Short-circuits `nanobot-setup.ps1`. Delete to reset.
 - **`NANOBOT_HOME`** overrides `~/.nanobot`. Set in `init_portable.ps1` to `data/`.
+- **`NANOBOT_WORKSPACE`** full path to workspace dir from `config.json`, set in `init_portable.ps1` via `Resolve-Workspace`. Used by memory.py patch to pin MEMORY.md/history to config workspace regardless of WebUI scope changes.
 - **New launchers must** define `$ROOT`, dot-source `scripts/init_portable.ps1`, call `Load-EnvEncrypted`. Don't inline.
 - **Default config** (`post_config.py`): `model: openai/gpt-oss-120b`, `provider: nvidia`, `disabledSkills: ["summarize", "tmux"]`, `restrictToWorkspace: true`. Also registers `custom` (uses `${NANOBOT_CUSTOM_API_KEY}` + `${NANOBOT_CUSTOM_API_BASE}`) and `aihubmix` providers. `pathAppend` left empty — PATH inherited from parent process (correct regardless of USB drive letter/workspace location).
 - **Gateway ports.** WebUI/WS on :8765, API :8900 (`/v1/chat/completions`, `/v1/models`). External tools use `:8900` as OpenAI API base.
 - **Custom workspace templates** (`scripts/templates/`). `portable_paths.py` patches `sync_workspace_templates()` to check `{NANOBOT_HOME}/../scripts/templates/` first. Falls back to upstream defaults silently if templates dir missing.
-- **Patches upstream source** (`portable_paths.py`). Rewrites `paths.py`, `loader.py`, `schema.py`, `cli/commands.py`, `utils/helpers.py`. Logs `[WARN] pattern not found` for misses — check after upstream bump. The `commands.py` log-handler patch is post-condition-checked (sentinels: `logger.remove()` + `"DEBUG" if X else "INFO"` + `level="DEBUG", rotation="1 day"`).
+- **Patches upstream source** (`portable_paths.py`). Rewrites `paths.py`, `loader.py`, `schema.py`, `cli/commands.py`, `utils/helpers.py`, `agent/memory.py`. Logs `[WARN] pattern not found` for misses — check after upstream bump. The `commands.py` log-handler patch is post-condition-checked (sentinels: `logger.remove()` + `"DEBUG" if X else "INFO"` + `level="DEBUG", rotation="1 day"`). Memory pin patch ensures `MemoryStore` always uses config workspace (`NANOBOT_HOME/workspace`) so memory survives WebUI workspace scope changes.
 - **`pip install --no-deps` wipes webui `dist/`.** Re-run `build-webui.bat` after every `setup.bat`. `sync_webui.ps1` is the manual drop-zone alternative (reads from `data/webui/`).
 - **Upstream ZIP install** does not include `app/webui/`. Only git clone does. `build-webui.bat` checks for `app/webui/package.json` and fails early.
 - **npm only for webui builds.** Bun's HOME-relative package store breaks on exFAT/FAT32. npm's flat `node_modules/` works on any filesystem.
