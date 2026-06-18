@@ -81,7 +81,7 @@ if (-not (Test-Path $TMP_DIR)) {
 function Resolve-Workspace {
     param([string]$ConfigPath = (Join-Path $DATA_DIR "config.json"))
     $script = Join-Path $ROOT "scripts\resolve_workspace.py"
-    if (Test-Path $script -and (Test-Path $PY)) {
+    if ((Test-Path $script) -and (Test-Path $PY)) {
         $raw = & $PY $script $ConfigPath $ROOT 2>$null
         if ($LASTEXITCODE -eq 0 -and $raw) {
             return $raw.Trim()
