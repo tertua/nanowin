@@ -64,20 +64,14 @@ Write-Host "[OK] Runner: npm" -ForegroundColor Green
 Write-Host "     Path:  $npmPath"
 
 # -- Run install with esbuild EFTYPE workaround --------------------------------
-# esbuild postinstall tries to run esbuild.exe for validation, which fails on
-# exFAT/FAT32 (USB portable) with EFTYPE. Workaround: install with
-# --ignore-scripts first (skip esbuild validation), then manually invoke
-# esbuild install to download the binary without the validation check.
 Write-Host ""
 Write-Host "[INFO] Running 'npm install' in app\webui..." -ForegroundColor Cyan
 Write-Host "       (first run may take several minutes for ~250MB node_modules)"
-Push-Location $WebuiDir
 
 # Step 1: Install all packages but skip postinstall scripts
 Write-Host "[INFO] Step 1: Installing packages (skip scripts)..." -ForegroundColor Cyan
-& $npmPath install --ignore-scripts
+& $npmPath --prefix $WebuiDir install --ignore-scripts
 if ($LASTEXITCODE -ne 0) {
-    Pop-Location
     Write-Host "[ERROR] npm install --ignore-scripts failed (exit $LASTEXITCODE)" -ForegroundColor Red
     exit 1
 }
@@ -86,23 +80,20 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "[INFO] Step 2: Installing esbuild binary..." -ForegroundColor Cyan
 $esbuildInstall = Join-Path $WebuiDir "node_modules\esbuild\bin\esbuild"
 if (Test-Path $esbuildInstall) {
-    # Set env to skip postinstall validation
     $env:npm_config_esbuild_use_global = "false"
-    & node (Join-Path $WebuiDir "node_modules\esbuild\install.js") 2>&1 | Write-Host
-    # Ignore EFTYPE error - esbuild binary will still work for builds
+    Push-Location $WebuiDir
+    & node "node_modules\esbuild\install.js" 2>&1 | Write-Host
+    Pop-Location
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[WARN] esbuild validation failed (EFTYPE on USB). Binary may still work." -ForegroundColor Yellow
     }
     Remove-Item Env:npm_config_esbuild_use_global -ErrorAction SilentlyContinue
 }
 
-# esbuild binary ready, no rebuild needed (postinstall already handled above)
-Pop-Location
-
-# -- Run build (re-enter webui dir to be safe) --------------------------------
-Push-Location $WebuiDir
+# -- Run build ----------------------------------------------------------------
 Write-Host ""
 Write-Host "[INFO] Running 'npm run build' in app\webui..." -ForegroundColor Cyan
+Push-Location $WebuiDir
 & $npmPath run build
 $buildExit = $LASTEXITCODE
 Pop-Location
