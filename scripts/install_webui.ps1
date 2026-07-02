@@ -1,4 +1,4 @@
-﻿# install_webui.ps1 - Build upstream webui and sync to installed package
+# install_webui.ps1 - Build upstream webui and sync to installed package
 # Usage: powershell -NoProfile -ExecutionPolicy Bypass -File install_webui.ps1
 #        or run build-webui.bat
 #
@@ -63,23 +63,55 @@ if (-not $npmPath) {
 Write-Host "[OK] Runner: npm" -ForegroundColor Green
 Write-Host "     Path:  $npmPath"
 
-# -- Run install ------------------------------------------------------------
+# -- Run install with esbuild EFTYPE retry -----------------------------------
 Write-Host ""
 Write-Host "[INFO] Running 'npm install' in app\webui..." -ForegroundColor Cyan
 Write-Host "       (first run may take several minutes for ~250MB node_modules)"
 Push-Location $WebuiDir
-try {
-    & $npmPath install
-    if ($LASTEXITCODE -ne 0) {
+
+$maxRetries = 2
+for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+    if ($attempt -gt 1) {
+        Write-Host "[RETRY] Attempt $attempt of $maxRetries..." -ForegroundColor Yellow
+        Write-Host "[RETRY] Clearing npm cache and removing node_modules..." -ForegroundColor Yellow
+        & $npmPath cache clean --force 2>$null
+        if (Test-Path (Join-Path $WebuiDir "node_modules")) {
+            Remove-Item -Path (Join-Path $WebuiDir "node_modules") -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path (Join-Path $WebuiDir "package-lock.json")) {
+            Remove-Item -Path (Join-Path $WebuiDir "package-lock.json") -Force -ErrorAction SilentlyContinue
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    try {
+        & $npmPath install
+        if ($LASTEXITCODE -eq 0) {
+            break  # Success
+        }
+        Write-Host "[WARN] npm install exit code: $LASTEXITCODE" -ForegroundColor Yellow
+    } catch {
+        Write-Host "[WARN] npm install exception: $_" -ForegroundColor Yellow
+    }
+
+    # Check for esbuild EFTYPE error specifically
+    $esbuildDir = Join-Path $WebuiDir "node_modules\@esbuild"
+    if (Test-Path $esbuildDir) {
+        Write-Host "[INFO] Esbuild detected — may need retry for EFTYPE on portable USB." -ForegroundColor Yellow
+    }
+
+    if ($attempt -eq $maxRetries) {
         Pop-Location
-        Write-Host "[ERROR] npm install failed (exit $LASTEXITCODE)" -ForegroundColor Red
+        Write-Host "[ERROR] npm install failed after $maxRetries attempts." -ForegroundColor Red
+        Write-Host "        Common fixes for EFTYPE on Windows:" -ForegroundColor Cyan
+        Write-Host "        1. Temporarily disable antivirus real-time protection" -ForegroundColor Cyan
+        Write-Host "        2. Run 'npm cache clean --force' manually" -ForegroundColor Cyan
+        Write-Host "        3. Delete node_modules/ and retry" -ForegroundColor Cyan
         exit 1
     }
-} catch {
-    Pop-Location
-    Write-Host "[ERROR] npm install exception: $_" -ForegroundColor Red
-    exit 1
+    Write-Host "[INFO] Retrying install..." -ForegroundColor Yellow
 }
+Pop-Location
 
 # -- Run build --------------------------------------------------------------
 Write-Host ""
