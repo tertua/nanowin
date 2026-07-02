@@ -96,9 +96,7 @@ if (Test-Path $esbuildInstall) {
     Remove-Item Env:npm_config_esbuild_use_global -ErrorAction SilentlyContinue
 }
 
-# Step 3: Run other postinstall scripts (tailwind, etc.)
-Write-Host "[INFO] Step 3: Running remaining postinstall scripts..." -ForegroundColor Cyan
-& $npmPath rebuild --allow-scripts 2>&1 | Write-Host
+# esbuild binary ready, no rebuild needed (postinstall already handled above)
 Pop-Location
 
 # -- Run build --------------------------------------------------------------
