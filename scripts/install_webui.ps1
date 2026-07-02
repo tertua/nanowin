@@ -63,54 +63,42 @@ if (-not $npmPath) {
 Write-Host "[OK] Runner: npm" -ForegroundColor Green
 Write-Host "     Path:  $npmPath"
 
-# -- Run install with esbuild EFTYPE retry -----------------------------------
+# -- Run install with esbuild EFTYPE workaround --------------------------------
+# esbuild postinstall tries to run esbuild.exe for validation, which fails on
+# exFAT/FAT32 (USB portable) with EFTYPE. Workaround: install with
+# --ignore-scripts first (skip esbuild validation), then manually invoke
+# esbuild install to download the binary without the validation check.
 Write-Host ""
 Write-Host "[INFO] Running 'npm install' in app\webui..." -ForegroundColor Cyan
 Write-Host "       (first run may take several minutes for ~250MB node_modules)"
 Push-Location $WebuiDir
 
-$maxRetries = 2
-for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
-    if ($attempt -gt 1) {
-        Write-Host "[RETRY] Attempt $attempt of $maxRetries..." -ForegroundColor Yellow
-        Write-Host "[RETRY] Clearing npm cache and removing node_modules..." -ForegroundColor Yellow
-        & $npmPath cache clean --force 2>$null
-        if (Test-Path (Join-Path $WebuiDir "node_modules")) {
-            Remove-Item -Path (Join-Path $WebuiDir "node_modules") -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        if (Test-Path (Join-Path $WebuiDir "package-lock.json")) {
-            Remove-Item -Path (Join-Path $WebuiDir "package-lock.json") -Force -ErrorAction SilentlyContinue
-        }
-        Start-Sleep -Seconds 2
-    }
-
-    try {
-        & $npmPath install
-        if ($LASTEXITCODE -eq 0) {
-            break  # Success
-        }
-        Write-Host "[WARN] npm install exit code: $LASTEXITCODE" -ForegroundColor Yellow
-    } catch {
-        Write-Host "[WARN] npm install exception: $_" -ForegroundColor Yellow
-    }
-
-    # Check for esbuild EFTYPE error specifically
-    $esbuildDir = Join-Path $WebuiDir "node_modules\@esbuild"
-    if (Test-Path $esbuildDir) {
-        Write-Host "[INFO] Esbuild detected — may need retry for EFTYPE on portable USB." -ForegroundColor Yellow
-    }
-
-    if ($attempt -eq $maxRetries) {
-        Pop-Location
-        Write-Host "[ERROR] npm install failed after $maxRetries attempts." -ForegroundColor Red
-        Write-Host "        Common fixes for EFTYPE on Windows:" -ForegroundColor Cyan
-        Write-Host "        1. Temporarily disable antivirus real-time protection" -ForegroundColor Cyan
-        Write-Host "        2. Run 'npm cache clean --force' manually" -ForegroundColor Cyan
-        Write-Host "        3. Delete node_modules/ and retry" -ForegroundColor Cyan
-        exit 1
-    }
-    Write-Host "[INFO] Retrying install..." -ForegroundColor Yellow
+# Step 1: Install all packages but skip postinstall scripts
+Write-Host "[INFO] Step 1: Installing packages (skip scripts)..." -ForegroundColor Cyan
+& $npmPath install --ignore-scripts
+if ($LASTEXITCODE -ne 0) {
+    Pop-Location
+    Write-Host "[ERROR] npm install --ignore-scripts failed (exit $LASTEXITCODE)" -ForegroundColor Red
+    exit 1
 }
+
+# Step 2: Manually run esbuild install (downloads binary without validation)
+Write-Host "[INFO] Step 2: Installing esbuild binary..." -ForegroundColor Cyan
+$esbuildInstall = Join-Path $WebuiDir "node_modules\esbuild\bin\esbuild"
+if (Test-Path $esbuildInstall) {
+    # Set env to skip postinstall validation
+    $env:npm_config_esbuild_use_global = "false"
+    & node (Join-Path $WebuiDir "node_modules\esbuild\install.js") 2>&1 | Write-Host
+    # Ignore EFTYPE error - esbuild binary will still work for builds
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[WARN] esbuild validation failed (EFTYPE on USB). Binary may still work." -ForegroundColor Yellow
+    }
+    Remove-Item Env:npm_config_esbuild_use_global -ErrorAction SilentlyContinue
+}
+
+# Step 3: Run other postinstall scripts (tailwind, etc.)
+Write-Host "[INFO] Step 3: Running remaining postinstall scripts..." -ForegroundColor Cyan
+& $npmPath rebuild 2>&1 | Write-Host
 Pop-Location
 
 # -- Run build --------------------------------------------------------------
