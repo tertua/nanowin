@@ -98,7 +98,7 @@ if (Test-Path $esbuildInstall) {
 
 # Step 3: Run other postinstall scripts (tailwind, etc.)
 Write-Host "[INFO] Step 3: Running remaining postinstall scripts..." -ForegroundColor Cyan
-& $npmPath rebuild 2>&1 | Write-Host
+& $npmPath rebuild --allow-scripts 2>&1 | Write-Host
 Pop-Location
 
 # -- Run build --------------------------------------------------------------
