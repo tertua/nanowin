@@ -255,35 +255,23 @@ def patch_serve(content):
     )
     return _patch_log_handlers(content, 'verbose', old_upstream, new, "4a. serve() terminal=INFO file=DEBUG")
 
-def patch_gateway(content):
-    """4b. gateway(): terminal=INFO (clean UX), file=DEBUG (full detail). --verbose elevates terminal to DEBUG."""
+def patch_agent(content):
+    """4b. agent(): no terminal logs by default, file=DEBUG (full detail). --logs adds stderr DEBUG."""
     old_upstream = (
-        '    if verbose:\n'
-        '        logger.remove(_log_handler_id)\n'
-        '        logger.add(\n'
-        '            sys.stderr,\n'
-        '            format=(\n'
-        '                "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "\n'
-        '                "<level>{level: <5}</level> | "\n'
-        '                "<cyan>{extra[channel]}</cyan> | "\n'
-        '                "<level>{message}</level>"\n'
-        '            ),\n'
-        '            level="DEBUG",\n'
-        '            colorize=None,\n'
-        '            filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
-        '        )\n'
-        '    cfg = _load_runtime_config(config, workspace)'
+        '\n    if logs:\n'
+        '        logger.enable("nanobot")\n'
+        '    else:\n'
+        '        logger.disable("nanobot")'
     )
     new = (
-        '    cfg = _load_runtime_config(config, workspace)\n'
         '\n'
-        '    # Terminal: INFO+ (heartbeat, warning, error). File: DEBUG (full detail, stack trace etc.).\n'
-        '    # --verbose elevates terminal to DEBUG for ad-hoc debugging.\n'
-        '    _log_dir = (cfg.workspace_path.parent / "logs").resolve()\n'
+        '    # Terminal: only when --logs is passed (chat stays clean otherwise).\n'
+        '    # File: DEBUG (full detail, stack trace etc.).\n'
+        '    _log_dir = (config.workspace_path.parent / "logs").resolve()\n'
         '    _log_dir.mkdir(parents=True, exist_ok=True)\n'
         '    # Remove ALL existing handlers (incl. loguru default id=0 at DEBUG) so they do not leak through.\n'
         '    logger.remove()\n'
-        + _STDERR_BLOCK.replace('__COND__', 'verbose') + '\n'
+        + _NEW_CONDITIONAL_STDERR + '\n'
         '    logger.add(\n'
         '        _log_dir / "nanobot_{time:YYYY-MM-DD}.log",\n'
         '        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {extra[channel]} | {message}",\n'
@@ -293,7 +281,20 @@ def patch_gateway(content):
         '        filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
         '    )'
     )
-    return _patch_log_handlers(content, 'verbose', old_upstream, new, "4b. gateway() terminal=INFO file=DEBUG")
+
+    # Migration: already-patched unconditional stderr (with ternary) → conditional (agent only)
+    if _OLD_UNCONDITIONAL_STDERR in content:
+        content = content.replace(_OLD_UNCONDITIONAL_STDERR, _NEW_CONDITIONAL_STDERR)
+        print("  [OK] 4b. agent() migrated from unconditional to conditional stderr")
+        return content, 1
+
+    return _patch_log_handlers(content, 'logs', old_upstream, new, "4b. agent() no-terminal logs by default file=DEBUG")
+
+def patch_multiline(content):
+    """4c. _init_prompt_session(): set multiline=True untuk multi-baris input."""
+    old = '        multiline=False,  # Enter submits (single line mode)'
+    new = '        multiline=True,  # Enter → newline, Escape+Enter → submit'
+    return simple_replace(content, old, new, "4c. _init_prompt_session() multiline=True")
 
 _OLD_UNCONDITIONAL_STDERR = (
     '    logger.add(\n'
@@ -325,53 +326,10 @@ _NEW_CONDITIONAL_STDERR = (
     '        )'
 )
 
-def patch_agent(content):
-    """4c. agent(): no terminal logs by default, file=DEBUG (full detail). --logs adds stderr DEBUG."""
-    old_upstream = (
-        '\n    if logs:\n'
-        '        logger.enable("nanobot")\n'
-        '    else:\n'
-        '        logger.disable("nanobot")'
-    )
-    new = (
-        '\n'
-        '    # Terminal: only when --logs is passed (chat stays clean otherwise).\n'
-        '    # File: DEBUG (full detail, stack trace etc.).\n'
-        '    _log_dir = (config.workspace_path.parent / "logs").resolve()\n'
-        '    _log_dir.mkdir(parents=True, exist_ok=True)\n'
-        '    # Remove ALL existing handlers (incl. loguru default id=0 at DEBUG) so they do not leak through.\n'
-        '    logger.remove()\n'
-        + _NEW_CONDITIONAL_STDERR + '\n'
-        '    logger.add(\n'
-        '        _log_dir / "nanobot_{time:YYYY-MM-DD}.log",\n'
-        '        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {extra[channel]} | {message}",\n'
-        '        level="DEBUG",\n'
-        '        rotation="1 day",\n'
-        '        retention="14 days",\n'
-        '        filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
-        '    )'
-    )
-
-    # Migration: already-patched unconditional stderr (with ternary) → conditional (agent only)
-    if _OLD_UNCONDITIONAL_STDERR in content:
-        content = content.replace(_OLD_UNCONDITIONAL_STDERR, _NEW_CONDITIONAL_STDERR)
-        print("  [OK] 4c. agent() migrated from unconditional to conditional stderr")
-        return content, 1
-
-    return _patch_log_handlers(content, 'logs', old_upstream, new, "4c. agent() no-terminal logs by default file=DEBUG")
-
-def patch_multiline(content):
-    """4d. _init_prompt_session(): set multiline=True untuk multi-baris input."""
-    old = '        multiline=False,  # Enter submits (single line mode)'
-    new = '        multiline=True,  # Enter → newline, Escape+Enter → submit'
-    return simple_replace(content, old, new, "4d. _init_prompt_session() multiline=True")
-
 if commands_target:
     content = commands_target.read_text("utf-8")
     commands_changed = 0
     content, ch = patch_serve(content)
-    commands_changed += ch
-    content, ch = patch_gateway(content)
     commands_changed += ch
     content, ch = patch_agent(content)
     commands_changed += ch
@@ -385,7 +343,115 @@ if commands_target:
 else:
     commands_changed = 0
 
-# -- 5. helpers.py --------------------------------------------------
+
+# -- 5. gateway.py --------------------------------------------------
+# Gateway command moved to nanobot/cli/gateway.py in upstream v0.2.2+
+GATEWAY_TARGETS = [
+    ROOT / "app" / "nanobot" / "cli" / "gateway.py",
+    ROOT / "bin" / "Lib" / "site-packages" / "nanobot" / "cli" / "gateway.py",
+]
+
+gateway_target = None
+for p in GATEWAY_TARGETS:
+    if p.exists():
+        gateway_target = p
+        break
+
+if gateway_target is None:
+    print("[INFO] nanobot/cli/gateway.py not found (older upstream?), skipping gateway patches.")
+else:
+    print(f"Gateway file: {gateway_target}")
+
+def patch_gateway_logging(content):
+    """5. gateway.py: terminal=INFO (clean UX), file=DEBUG (full detail). --verbose elevates terminal to DEBUG."""
+    # The gateway.py has a configure_logging function that only logs when verbose=True
+    # We need to patch it to always log to file (DEBUG) and conditionally to terminal (INFO/DEBUG)
+    old_configure = (
+        '    def configure_logging(verbose: bool) -> None:\n'
+        '        if not verbose:\n'
+        '            return\n'
+        '        logger.remove(log_handler_id)\n'
+        '        logger.add(\n'
+        '            sys.stderr,\n'
+        '            format=(\n'
+        '                "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "\n'
+        '                "<level>{level: <5}</level> | "\n'
+        '                "<cyan>{extra[channel]}</cyan> | "\n'
+        '                "<level>{message}</level>"\n'
+        '            ),\n'
+        '            level="DEBUG",\n'
+        '            colorize=None,\n'
+        '            filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
+        '        )'
+    )
+    new_configure = (
+        '    def configure_logging(verbose: bool) -> None:\n'
+        '        import os as _os\n'
+        '        # Terminal: INFO+ (heartbeat, warning, error). File: DEBUG (full detail).\n'
+        '        # --verbose elevates terminal to DEBUG for ad-hoc debugging.\n'
+        '        _log_dir = None\n'
+        '        try:\n'
+        '            from nanobot.config.loader import load_config as _lc, get_config_path as _gcp\n'
+        '            _cfg = _lc()\n'
+        '            _log_dir = (_cfg.workspace_path.parent / "logs").resolve()\n'
+        '            _log_dir.mkdir(parents=True, exist_ok=True)\n'
+        '        except Exception:\n'
+        '            pass\n'
+        '        # Remove ALL existing handlers (incl. loguru default id=0 at DEBUG)\n'
+        '        logger.remove()\n'
+        '        # Terminal: conditional on verbose\n'
+        '        if verbose:\n'
+        '            logger.add(\n'
+        '                sys.stderr,\n'
+        '                format=(\n'
+        '                    "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "\n'
+        '                    "<level>{level: <5}</level> | "\n'
+        '                    "<cyan>{extra[channel]}</cyan> | "\n'
+        '                    "<level>{message}</level>"\n'
+        '                ),\n'
+        '                level="DEBUG",\n'
+        '                colorize=None,\n'
+        '                filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
+        '            )\n'
+        '        else:\n'
+        '            logger.add(\n'
+        '                sys.stderr,\n'
+        '                format=(\n'
+        '                    "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "\n'
+        '                    "<level>{level: <5}</level> | "\n'
+        '                    "<cyan>{extra[channel]}</cyan> | "\n'
+        '                    "<level>{message}</level>"\n'
+        '                ),\n'
+        '                level="INFO",\n'
+        '                colorize=None,\n'
+        '                filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
+        '            )\n'
+        '        # File: always DEBUG\n'
+        '        if _log_dir:\n'
+        '            logger.add(\n'
+        '                _log_dir / "nanobot_{time:YYYY-MM-DD}.log",\n'
+        '                format="{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {extra[channel]} | {message}",\n'
+        '                level="DEBUG",\n'
+        '                rotation="1 day",\n'
+        '                retention="14 days",\n'
+        '                filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
+        '            )'
+    )
+    return simple_replace(content, old_configure, new_configure, "5. gateway.py logging terminal=INFO file=DEBUG")
+
+gateway_changed = 0
+if gateway_target:
+    content = gateway_target.read_text("utf-8")
+    content, ch = patch_gateway_logging(content)
+    gateway_changed += ch
+    if gateway_changed:
+        gateway_target.write_text(content, "utf-8")
+        print(f"  -> {gateway_changed} patch(es) applied to gateway.py")
+    else:
+        print("  -> No changes to gateway.py")
+
+
+# -- 6. helpers.py --------------------------------------------------
 HELPERS_TARGETS = [
     ROOT / "app" / "nanobot" / "utils" / "helpers.py",
     ROOT / "bin" / "Lib" / "site-packages" / "nanobot" / "utils" / "helpers.py",
@@ -403,7 +469,7 @@ else:
     print(f"Helpers file: {helpers_target}")
 
 def patch_sync_workspace_templates(content: str) -> tuple[str, int]:
-    """5. sync_workspace_templates(): check NANOBOT_HOME/../scripts/templates/ first."""
+    """6. sync_workspace_templates(): check NANOBOT_HOME/../scripts/templates/ first."""
     old = (
         '    try:\n'
         '        tpl = pkg_files("nanobot") / "templates"\n'
@@ -427,7 +493,7 @@ def patch_sync_workspace_templates(content: str) -> tuple[str, int]:
         '        if _lite_tpl.is_dir():\n'
         '            tpl = _lite_tpl'
     )
-    return simple_replace(content, old, new, "5. helpers.py sync_workspace_templates custom templates")
+    return simple_replace(content, old, new, "6. helpers.py sync_workspace_templates custom templates")
 
 helpers_changed = 0
 if helpers_target:
@@ -440,7 +506,7 @@ if helpers_target:
     else:
         print("  -> No changes to helpers.py")
 
-# -- 6. memory.py ---------------------------------------------------
+# -- 7. memory.py ---------------------------------------------------
 MEMORY_TARGETS = [
     ROOT / "app" / "nanobot" / "agent" / "memory.py",
     ROOT / "bin" / "Lib" / "site-packages" / "nanobot" / "agent" / "memory.py",
@@ -468,7 +534,7 @@ def patch_memory_init(content: str) -> tuple[str, int]:
             '        self.soul_file = workspace / "SOUL.md"\n'
             '        self.user_file = workspace / "USER.md"\n'
             '        self._cursor_file = self.memory_dir / ".cursor"\n'
-            '        self._dream_cursor_file = self.memory_dir / ".dream_cursor"\n',
+            '        self._dream_cursor_file = self.memory_dir / ".dream_cursor"',
             '        # Nanowin: pin memory to config workspace so memory survives workspace scope changes\n'
             '        _mem_ws = Path(os.environ["NANOBOT_WORKSPACE"]) if "NANOBOT_WORKSPACE" in os.environ else Path(os.environ["NANOBOT_HOME"]) / "workspace" if "NANOBOT_HOME" in os.environ else workspace\n'
             '        self.memory_dir = ensure_dir(_mem_ws / "memory")\n'
@@ -478,7 +544,7 @@ def patch_memory_init(content: str) -> tuple[str, int]:
             '        self.soul_file = _mem_ws / "SOUL.md"\n'
             '        self.user_file = _mem_ws / "USER.md"\n'
             '        self._cursor_file = self.memory_dir / ".cursor"\n'
-            '        self._dream_cursor_file = self.memory_dir / ".dream_cursor"\n',
+            '        self._dream_cursor_file = self.memory_dir / ".dream_cursor"',
             "memory.py __init__ pin memory paths to config workspace",
         ),
     ]
@@ -507,7 +573,7 @@ if memory_target:
         print("  -> No changes to memory.py")
 
 # -- Summary --------------------------------------------------------
-total = paths_changed + loader_changed + schema_changed + commands_changed + helpers_changed + memory_changed
+total = paths_changed + loader_changed + schema_changed + commands_changed + gateway_changed + helpers_changed + memory_changed
 print(f"\nDone. {total} file(s) patched.")
 if total:
     print("Please restart nanobot to apply changes.")
