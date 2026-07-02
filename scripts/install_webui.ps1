@@ -97,13 +97,14 @@ if (Test-Path $esbuildInstall) {
 }
 
 # esbuild binary ready, no rebuild needed (postinstall already handled above)
+Pop-Location
 
-# -- Run build (still in $WebuiDir via Push-Location above) -------------------
+# -- Run build (re-enter webui dir to be safe) --------------------------------
+Push-Location $WebuiDir
 Write-Host ""
 Write-Host "[INFO] Running 'npm run build' in app\webui..." -ForegroundColor Cyan
 & $npmPath run build
 $buildExit = $LASTEXITCODE
-
 Pop-Location
 
 if ($buildExit -ne 0) {
