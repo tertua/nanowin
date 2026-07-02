@@ -97,24 +97,19 @@ if (Test-Path $esbuildInstall) {
 }
 
 # esbuild binary ready, no rebuild needed (postinstall already handled above)
-Pop-Location
 
-# -- Run build --------------------------------------------------------------
+# -- Run build (still in $WebuiDir via Push-Location above) -------------------
 Write-Host ""
 Write-Host "[INFO] Running 'npm run build' in app\webui..." -ForegroundColor Cyan
-try {
-    & $npmPath run build
-    if ($LASTEXITCODE -ne 0) {
-        Pop-Location
-        Write-Host "[ERROR] npm run build failed (exit $LASTEXITCODE)" -ForegroundColor Red
-        exit 1
-    }
-} catch {
-    Pop-Location
-    Write-Host "[ERROR] npm run build exception: $_" -ForegroundColor Red
+& $npmPath run build
+$buildExit = $LASTEXITCODE
+
+Pop-Location
+
+if ($buildExit -ne 0) {
+    Write-Host "[ERROR] npm run build failed (exit $buildExit)" -ForegroundColor Red
     exit 1
 }
-Pop-Location
 
 # -- Verify build output ----------------------------------------------------
 if (-not (Test-Path $IndexOut)) {
