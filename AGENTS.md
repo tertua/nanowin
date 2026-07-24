@@ -59,7 +59,7 @@ data/  # config.json, .env.encrypted, .env_key, .lockhead, knowledge/, logs/, wo
 
 - **Whitelist `.gitignore`.** Starts with `/*` — add `!/path` for new tracked files. Tracked: `setup.bat`, `start-chat.bat`, `edit_env.bat`, `build-webui.bat`, `start-gateway.bat`, `scripts/**`, `README.md`, `SECURITY.md`, `AGENTS.md`, `LICENSE`, `.github/`, `.github/FUNDING.yml`, `.gitattributes`, `.gitignore`.
 - **Line endings.** `.ps1`/`.bat`/`.vbs`/`.cmd` are CRLF (PS5.1 chokes on LF). `.py`/`.md`/`.json`/`.yml`/`.toml`/`.txt` are LF.
-- **Hard-coded versions in `nanobot-setup.ps1`** (`$PyVer=3.12.3`, `$GitVer=2.54.0`, `$NodeVer=24.16.0`, `$GhVer=2.93.0`). Bump there — no manifest.
+- **Hard-coded versions in `nanobot-setup.ps1`** (`$PyVer=3.12.3`, `$GitVer=2.54.0`, `$NodeVer=24.16.0`, `$GhVer=2.93.0`). Bump there — no manifest. **When bumping a version, also update its SHA-256 hash** in the corresponding `install_*.ps1` script (hash tables keyed by arch). Compute via: `curl -sL <url> | sha256sum` or `Get-FileHash` on Windows.
 - **BusyBox single EXE** from `frippery.org/files/busybox/`. No archive; `Download-Helper` saves to `bin\busybox.exe`.
 - **Python embed `.pth` patching** (`install_python.ps1`): uncomments `import site`, appends `Lib`, `Lib\site-packages`, `..\app`. Without this, pip and app/ imports fail.
 - **`.env` encrypted at rest** (AES-256-GCM + scrypt). `edit_env.bat` is the only plaintext path. Launchers use `Load-EnvEncrypted` → `env_crypt.py load` → `.env.tmp` → process env → delete `.env.tmp`. Never commit a key.
