@@ -1,6 +1,6 @@
 # AGENTS.md — nanowin
 
-Windows-portable runtime for [HKUDS/nanobot](https://github.com/HKUDS/nanobot). Runs on built-in Windows PowerShell 5.1+ (no PS7). Everything lives on a USB drive; touches zero host state.
+Windows-portable runtime for [tertua/nanobot](https://github.com/tertua/nanobot) (a fork of HKUDS/nanobot). Runs on built-in Windows PowerShell 5.1+ (no PS7). Everything lives on a USB drive; touches zero host state.
 
 - No test runner, linter, type checker, or CI.
 - `setup.bat` fetches portable Python/Node/Git/gh into `bin/`. No host tools required.
@@ -75,11 +75,13 @@ data/  # config.json, .env.encrypted, .env_key, .lockhead, knowledge/, logs/, wo
 - **`pip install --no-deps` wipes webui `dist/`.** Re-run `build-webui.bat` after every `setup.bat`. `sync_webui.ps1` is the manual drop-zone alternative (reads from `data/webui/`).
 - **Upstream ZIP install** does not include `app/webui/`. Only git clone does. `build-webui.bat` checks for `app/webui/package.json` and fails early.
 - **npm only for webui builds.** Bun's HOME-relative package store breaks on exFAT/FAT32. npm's flat `node_modules/` works on any filesystem.
+- **esbuild EFTYPE on USB.** `install_webui.ps1` runs `npm install --ignore-scripts`, then manually invokes esbuild's install.js. The postinstall validation binary may fail (EFTYPE on FAT32/esFAT) but a cached binary from a prior run still works.
+- **OpenAI SDK emoji patch.** `install_deps.ps1` patches `openai/_utils/_json.py`: `ensure_ascii=False` → `True`, appends `errors='replace'` to `.encode()`. Prevents emoji crashes. Backup at `_json.py.backup`.
 - **`.bat` files are thin wrappers** — check `where powershell`, call `.ps1`, pause on error. Don't edit for logic.
 - **Language rule.** Chat output to user: formal Indonesian. Everything else (code, comments, docs, logs, variable names): English. No exceptions, no mix.
 - **Cleanup note.** `nanobot-setup.ps1` removes `$TMP_DIR` but preserves `$APP_DIR`. Don't re-enable the `$APP_DIR` Remove-Item.
 - **No commit/push without explicit approval.** Never stage, commit, amend, or push unless the user explicitly requests it. Wait for a direct command.
 
-## Upstream repo
+## Source repo
 
-`https://github.com/HKUDS/nanobot.git` branch `main`. Setup clones to `app/` (git) or downloads ZIP. The patches in `portable_paths.py` target upstream layout — if upstream refactors, check the patcher.
+Setup clones `https://github.com/tertua/nanobot.git` branch `master` (a fork of HKUDS/nanobot). Falls back to ZIP download from the same repo. The patches in `portable_paths.py` target nanobot/config/ layout — if upstream refactors, check the patcher and update `candidates` paths.
