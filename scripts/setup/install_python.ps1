@@ -16,6 +16,10 @@ if (Test-Path $PythonExe) {
     if (-not (Test-Path $PyZip)) {
         throw "Failed to download Python!`nManual download: $PyUrl`nSave to: $PyZip"
     }
+    $pyHashes = @{ "amd64" = "38b265fc0612027a126ae54d2485101f041b61893e41ef4f421dee6ac618a99e" }
+    if ($pyHashes.ContainsKey($PyArch)) {
+        Verify-Hash -Path $PyZip -Expected $pyHashes[$PyArch] -Label "Python $PyVer embed $PyArch"
+    }
     $fi = Get-Item $PyZip
     Write-Info "File size: $($fi.Length) bytes"
     Write-Info "Extracting..."
@@ -50,6 +54,7 @@ if ($pipExists) {
     if (-not (Test-Path $GetPip)) {
         throw "Failed to download get-pip.py"
     }
+    Verify-Hash -Path $GetPip -Expected "a341e1a43e38001c551a1508a73ff23636a11970b61d901d9a1cad2a18f57055" -Label "get-pip.py"
     Write-Info "Installing pip..."
     & $PythonExe $GetPip --no-warn-script-location
     if ($LASTEXITCODE -ne 0) {

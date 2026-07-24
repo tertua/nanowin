@@ -14,6 +14,10 @@ if (Test-Path $BBExe) {
     if (-not (Test-Path $BBExe)) {
         throw "Failed to download BusyBox!`nManual download: $BBUrl`nSave to: $BBExe"
     }
+    $bbHashes = @{ "busybox64.exe" = "07bb1e5b095b00d68a695481f9240879f33c5724b40aa2308f999d54ed78f075" }
+    if ($bbHashes.ContainsKey($BBArch)) {
+        Verify-Hash -Path $BBExe -Expected $bbHashes[$BBArch] -Label "BusyBox $BBArch"
+    }
     $fi = Get-Item $BBExe
     Write-Info "File size: $($fi.Length) bytes"
     Write-Info "BusyBox installed."

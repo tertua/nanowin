@@ -40,6 +40,21 @@ function Extract-Helper {
     & (Join-Path $SCRIPTS_DIR "setup\extract.ps1") -Zip $Zip -Dest $Dest
 }
 
+function Verify-Hash {
+    param([string]$Path, [string]$Expected, [string]$Label)
+    if (-not (Test-Path $Path)) {
+        throw "$Label not found at $Path — cannot verify hash"
+    }
+    $actual = (Get-FileHash -Path $Path -Algorithm SHA256).Hash
+    if ($actual -ne $Expected) {
+        Write-Host "  [ERROR] $Label SHA-256 mismatch!" -ForegroundColor Red
+        Write-Host "          Expected: $Expected" -ForegroundColor Red
+        Write-Host "          Actual:   $actual" -ForegroundColor Red
+        throw "Hash mismatch for $Label"
+    }
+    Write-Info "SHA-256 OK: $Label"
+}
+
 function Flatten-ExtractedDir {
     param([string]$BaseDir, [string]$SearchExe)
     $nested = Get-ChildItem -Path $BaseDir -Directory | Where-Object { Test-Path (Join-Path $_.FullName $SearchExe) } | Select-Object -First 1

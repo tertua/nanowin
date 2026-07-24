@@ -19,6 +19,10 @@ if (Test-Path $NodeExe) {
     if (-not (Test-Path $NodeZip)) {
         throw "Failed to download Node.js!"
     }
+    $nodeHashes = @{ "x64" = "edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56" }
+    if ($nodeHashes.ContainsKey($ArchNode)) {
+        Verify-Hash -Path $NodeZip -Expected $nodeHashes[$ArchNode] -Label "Node.js v$NodeVer $ArchNode"
+    }
     Write-Info "Extracting..."
     if (Test-Path $NodeDir) { Remove-Item -Path $NodeDir -Recurse -Force }
     Extract-Helper -Zip $NodeZip -Dest $NodeDir

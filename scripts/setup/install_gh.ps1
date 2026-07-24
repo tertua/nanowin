@@ -18,6 +18,10 @@ if (Test-Path $GhExe) {
     if (-not (Test-Path $GhZip)) {
         throw "Failed to download gh!"
     }
+    $ghHashes = @{ "amd64" = "77aa01ed7317295ad550de0ad04f3f276b1ef0e9272e3d002ac28dd99853d211" }
+    if ($ghHashes.ContainsKey($ArchGh)) {
+        Verify-Hash -Path $GhZip -Expected $ghHashes[$ArchGh] -Label "gh v$GhVer $ArchGh"
+    }
     Write-Info "Extracting..."
     $GhDir = Join-Path $ROOT "bin\gh"
     if (Test-Path $GhDir) { Remove-Item -Path $GhDir -Recurse -Force }
