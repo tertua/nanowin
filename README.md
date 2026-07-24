@@ -10,7 +10,7 @@ Portable AI runtime for Windows. No installation — runs from USB drive.
 |---|---|
 | 1 | Double-click **`setup.bat`** (one-time, ~5 min) |
 | 2 | Double-click **`edit_env.bat`** — enter your API key |
-| 3 | Double-click **`start-gateway.vbs`** |
+| 3 | Double-click **`start-gateway.bat`** |
 
 That's it. Everything else is automatic.
 
