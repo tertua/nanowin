@@ -69,7 +69,7 @@ Write-Host "[INFO] Running 'npm install' in app\webui..." -ForegroundColor Cyan
 Write-Host "       (first run may take several minutes for ~250MB node_modules)"
 
 # Step 1: Install all packages but skip postinstall scripts
-Write-Host "[INFO] Step 1: Installing packages (skip scripts)..." -ForegroundColor Cyan
+Write-Host "[INFO] Step 1: Installing packages..." -ForegroundColor Cyan
 & $npmPath --prefix $WebuiDir install --ignore-scripts
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] npm install --ignore-scripts failed (exit $LASTEXITCODE)" -ForegroundColor Red
