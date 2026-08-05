@@ -68,82 +68,52 @@ _STDERR_BLOCK = '''    logger.add(
     )'''
 
 
-def _patch_log_handlers(content: str, cond_var: str, old_upstream: str, new_block: str, label: str) -> tuple[str, int]:
-    """Patch nanobot CLI log handlers via 3 small regex subs (+ upstream full-block fallback).
+_FILE_LOG_BLOCK = '''    logger.add(
+        _log_dir / "nanobot_{time:YYYY-MM-DD}.log",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {extra[channel]} | {message}",
+        level="DEBUG",
+        rotation="1 day",
+        retention="14 days",
+        filter=lambda record: record["extra"].setdefault("channel", "-") or True,
+    )'''
 
-    Regex subs (idempotent, no-op if pattern not matched):
-      A. `logger.remove(_log_handler_id)` → `logger.remove()`
-         Fixes the DEBUG leak: removes ALL handlers, not just the custom one.
-      B. File logger level INFO/WARNING → DEBUG
-      C. Conditional `if X: logger.add(sys.stderr, level="DEBUG", ...)` → unconditional ternary
-         Always shows INFO+ in terminal; --{cond_var} elevates to DEBUG.
 
-    For fresh upstream (no _log_dir at all), a full-block replace installs the new setup.
-    For other unrecognised states, post-condition check fails and a [WARN] is logged —
-    delete data\\.lockhead and re-run setup.bat to recover.
-    """
-    # Fresh upstream state: try full-block replace first (before sentinel check,
-    # because a previous function's patch may have added _log_dir.mkdir).
-    if old_upstream and old_upstream in content:
-        content = content.replace(old_upstream, new_block)
-        print(f"  [OK] {label} (upstream full-block)")
-        return content, 1
+def _serve_new_block() -> str:
+    return (
+        '    runtime_config = _load_runtime_config(config, workspace)\n'
+        '\n'
+        '    # Nanowin: terminal=INFO (clean UX), file=DEBUG (full detail). --verbose elevates terminal to DEBUG.\n'
+        '    _log_dir = (runtime_config.workspace_path.parent / "logs").resolve()\n'
+        '    _log_dir.mkdir(parents=True, exist_ok=True)\n'
+        '    logger.remove()\n'
+        + _STDERR_BLOCK.replace('__COND__', 'verbose') + '\n'
+        + _FILE_LOG_BLOCK
+    )
 
-    # Sentinel: already fully patched
-    if "_log_dir.mkdir" in content:
-        log_section = content[content.index("_log_dir.mkdir"):]
-        # Standard: unconditional terminal at INFO/DEBUG (serve/gateway/agent --logs)
-        has_ternary = f'"DEBUG" if {cond_var} else "INFO"' in content
-        # Agent-conditional: stderr handler only added when --logs is passed
-        has_conditional = f'if {cond_var}:\n        logger.add(\n            sys.stderr' in content
-        if (
-            "logger.remove()" in log_section
-            and re.search(r'level="DEBUG",\s+rotation="1 day"', content)
-            and (has_ternary or has_conditional)
-        ):
-            return content, 0  # SKIP
 
-    # Partially patched: has _log_dir but sentinel failed → apply small regex subs
-    if "_log_dir.mkdir" in content:
-        n_total = 0
-
-        # Sub A
-        content, n = re.subn(r'logger\.remove\(_log_handler_id\)', 'logger.remove()', content)
-        n_total += n
-
-        # Sub B
-        content, n = re.subn(
-            r'(logger\.add\(\s*_log_dir / "nanobot_\{time:YYYY-MM-DD\}\.log",.*?level=)"(?:INFO|WARNING)"',
-            r'\1"DEBUG"',
-            content,
-            flags=re.DOTALL,
-        )
-        n_total += n
-
-        # Sub C
-        cond_re = re.escape(cond_var)
-        content, n = re.subn(
-            r'    if ' + cond_re + r':\n        logger\.add\(\s*sys\.stderr,.*?level="DEBUG",\s*colorize=None,\s*filter=.*?,\s*\)\n',
-            _STDERR_BLOCK.replace('__COND__', cond_var),
-            content,
-            flags=re.DOTALL,
-        )
-        n_total += n
-
-        # Post-condition check
-        log_section = content[content.index("_log_dir.mkdir"):]
-        has_remove = "logger.remove()" in log_section
-        has_terminal = f'"DEBUG" if {cond_var} else "INFO"' in content
-        has_file_debug = re.search(r'level="DEBUG",\s+rotation="1 day"', content) is not None
-        if has_remove and has_terminal and has_file_debug:
-            print(f"  [OK] {label} ({n_total} regex sub(s))")
-            return content, 1
-
-        print(f"  [WARN] {label}: incomplete after subs — delete data\\.lockhead and re-run setup.bat")
-        return content, 0
-
-    print(f"  [WARN] {label}: pattern not found — version mismatch?")
-    return content, 0
+def _agent_new_block() -> str:
+    return (
+        '    # Nanowin: no terminal logs by default (chat stays clean); file=DEBUG always.\n'
+        '    # --logs adds stderr DEBUG. loguru is imported locally (agent.py has no logger import).\n'
+        '    from loguru import logger\n'
+        '    _log_dir = (runtime_config.workspace_path.parent / "logs").resolve()\n'
+        '    _log_dir.mkdir(parents=True, exist_ok=True)\n'
+        '    logger.remove()\n'
+        '    if logs:\n'
+        '        logger.add(\n'
+        '            sys.stderr,\n'
+        '            format=(\n'
+        '                "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "\n'
+        '                "<level>{level: <5}</level> | "\n'
+        '                "<cyan>{extra[channel]}</cyan> | "\n'
+        '                "<level>{message}</level>"\n'
+        '            ),\n'
+        '            level="DEBUG",\n'
+        '            colorize=None,\n'
+        '            filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
+        '        )\n'
+        + _FILE_LOG_BLOCK
+    )
 
 # -- 1. paths.py ----------------------------------------------------
 def patch_paths(content: str) -> tuple[str, int]:
@@ -206,143 +176,81 @@ def patch_schema(content: str) -> tuple[str, int]:
 schema_changed = patch_file("schema.py", patch_schema)
 
 
-# -- 4. commands.py -------------------------------------------------
-# commands.py is at nanobot/cli/commands.py, not nanobot/config/.
-COMMANDS_TARGETS = [
+# -- 4. serve() / agent() logging ---------------------------------
+# Upstream v0.2.2+ refactored CLI logging: serve()/agent() now call
+# `_set_nanobot_logs(<flag>)` (nanobot/cli/log_control.py) instead of toggling
+# loguru handlers inline. Replace that call with nanowin's own handlers:
+# terminal=INFO (clean UX) or DEBUG with --verbose/--logs; file=DEBUG always.
+# serve() lives in commands.py; agent() moved to cli/agent.py (no loguru import there).
+SERVE_TARGETS = [
     ROOT / "app" / "nanobot" / "cli" / "commands.py",
     ROOT / "bin" / "Lib" / "site-packages" / "nanobot" / "cli" / "commands.py",
 ]
+AGENT_TARGETS = [
+    ROOT / "app" / "nanobot" / "cli" / "agent.py",
+    ROOT / "bin" / "Lib" / "site-packages" / "nanobot" / "cli" / "agent.py",
+]
 
-commands_target = None
-for p in COMMANDS_TARGETS:
-    if p.exists():
-        commands_target = p
-        break
 
-if commands_target is None:
-    print("[ERROR] Cannot find nanobot/cli/commands.py.")
-else:
-    print(f"Commands file: {commands_target}")
-
-def patch_serve(content):
-    """4a. serve(): terminal=INFO (clean UX), file=DEBUG (full detail). --verbose elevates terminal to DEBUG."""
-    old_upstream = (
-        '    if verbose:\n'
-        '        logger.enable("nanobot")\n'
-        '    else:\n'
-        '        logger.disable("nanobot")\n'
+def patch_serve(content: str) -> tuple[str, int]:
+    """4a. serve() (commands.py): terminal=INFO, file=DEBUG. --verbose elevates terminal to DEBUG."""
+    old = (
+        '    _set_nanobot_logs(verbose)\n'
         '\n'
         '    runtime_config = _load_runtime_config(config, workspace)'
     )
-    new = (
-        '    runtime_config = _load_runtime_config(config, workspace)\n'
-        '\n'
-        '    # Terminal: INFO+ (heartbeat, warning, error). File: DEBUG (full detail, stack trace etc.).\n'
-        '    # --verbose elevates terminal to DEBUG for ad-hoc debugging.\n'
-        '    _log_dir = (runtime_config.workspace_path.parent / "logs").resolve()\n'
-        '    _log_dir.mkdir(parents=True, exist_ok=True)\n'
-        '    # Remove ALL existing handlers (incl. loguru default id=0 at DEBUG) so they do not leak through.\n'
-        '    logger.remove()\n'
-        + _STDERR_BLOCK.replace('__COND__', 'verbose') + '\n'
-        '    logger.add(\n'
-        '        _log_dir / "nanobot_{time:YYYY-MM-DD}.log",\n'
-        '        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {extra[channel]} | {message}",\n'
-        '        level="DEBUG",\n'
-        '        rotation="1 day",\n'
-        '        retention="14 days",\n'
-        '        filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
-        '    )'
-    )
-    return _patch_log_handlers(content, 'verbose', old_upstream, new, "4a. serve() terminal=INFO file=DEBUG")
+    return simple_replace(content, old, _serve_new_block(), "4a. serve() terminal=INFO file=DEBUG")
 
-def patch_agent(content):
-    """4b. agent(): no terminal logs by default, file=DEBUG (full detail). --logs adds stderr DEBUG."""
-    old_upstream = (
-        '\n    if logs:\n'
-        '        logger.enable("nanobot")\n'
-        '    else:\n'
-        '        logger.disable("nanobot")'
-    )
-    new = (
-        '\n'
-        '    # Terminal: only when --logs is passed (chat stays clean otherwise).\n'
-        '    # File: DEBUG (full detail, stack trace etc.).\n'
-        '    _log_dir = (config.workspace_path.parent / "logs").resolve()\n'
-        '    _log_dir.mkdir(parents=True, exist_ok=True)\n'
-        '    # Remove ALL existing handlers (incl. loguru default id=0 at DEBUG) so they do not leak through.\n'
-        '    logger.remove()\n'
-        + _NEW_CONDITIONAL_STDERR + '\n'
-        '    logger.add(\n'
-        '        _log_dir / "nanobot_{time:YYYY-MM-DD}.log",\n'
-        '        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {extra[channel]} | {message}",\n'
-        '        level="DEBUG",\n'
-        '        rotation="1 day",\n'
-        '        retention="14 days",\n'
-        '        filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
-        '    )'
+
+def patch_agent(content: str) -> tuple[str, int]:
+    """4b. agent() (cli/agent.py): no terminal logs by default, file=DEBUG. --logs adds stderr DEBUG."""
+    return simple_replace(
+        content,
+        '    _set_nanobot_logs(logs)',
+        _agent_new_block(),
+        "4b. agent() no-terminal logs by default file=DEBUG",
     )
 
-    # Migration: already-patched unconditional stderr (with ternary) → conditional (agent only)
-    if _OLD_UNCONDITIONAL_STDERR in content:
-        content = content.replace(_OLD_UNCONDITIONAL_STDERR, _NEW_CONDITIONAL_STDERR)
-        print("  [OK] 4b. agent() migrated from unconditional to conditional stderr")
-        return content, 1
 
-    return _patch_log_handlers(content, 'logs', old_upstream, new, "4b. agent() no-terminal logs by default file=DEBUG")
+commands_changed = 0
+serve_target = None
+for p in SERVE_TARGETS:
+    if p.exists():
+        serve_target = p
+        break
 
-def patch_multiline(content):
-    """4c. _init_prompt_session(): set multiline=True untuk multi-baris input."""
-    old = '        multiline=False,  # Enter submits (single line mode)'
-    new = '        multiline=True,  # Enter → newline, Escape+Enter → submit'
-    return simple_replace(content, old, new, "4c. _init_prompt_session() multiline=True")
-
-_OLD_UNCONDITIONAL_STDERR = (
-    '    logger.add(\n'
-    '        sys.stderr,\n'
-    '        format=(\n'
-    '            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "\n'
-    '            "<level>{level: <5}</level> | "\n'
-    '            "<cyan>{extra[channel]}</cyan> | "\n'
-    '            "<level>{message}</level>"\n'
-    '        ),\n'
-    '        level="DEBUG" if logs else "INFO",\n'
-    '        colorize=None,\n'
-    '        filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
-    '    )'
-)
-_NEW_CONDITIONAL_STDERR = (
-    '    if logs:\n'
-    '        logger.add(\n'
-    '            sys.stderr,\n'
-    '            format=(\n'
-    '                "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "\n'
-    '                "<level>{level: <5}</level> | "\n'
-    '                "<cyan>{extra[channel]}</cyan> | "\n'
-    '                "<level>{message}</level>"\n'
-    '            ),\n'
-    '            level="DEBUG",\n'
-    '            colorize=None,\n'
-    '            filter=lambda record: record["extra"].setdefault("channel", "-") or True,\n'
-    '        )'
-)
-
-if commands_target:
-    content = commands_target.read_text("utf-8")
-    commands_changed = 0
+if serve_target:
+    print(f"Serve file: {serve_target}")
+    content = serve_target.read_text("utf-8")
     content, ch = patch_serve(content)
     commands_changed += ch
+    if ch:
+        serve_target.write_text(content, "utf-8")
+        print("  -> serve() patched in commands.py")
+else:
+    print("[INFO] nanobot/cli/commands.py not found, skipping serve patch.")
+
+agent_target = None
+for p in AGENT_TARGETS:
+    if p.exists():
+        agent_target = p
+        break
+
+if agent_target:
+    print(f"Agent file: {agent_target}")
+    content = agent_target.read_text("utf-8")
     content, ch = patch_agent(content)
     commands_changed += ch
-    content, ch = patch_multiline(content)
-    commands_changed += ch
-    if commands_changed:
-        commands_target.write_text(content, "utf-8")
-        print(f"  -> {commands_changed} patch(es) applied to commands.py")
-    else:
-        print("  -> No changes to commands.py")
+    if ch:
+        agent_target.write_text(content, "utf-8")
+        print("  -> agent() patched in agent.py")
 else:
-    commands_changed = 0
+    print("[INFO] nanobot/cli/agent.py not found, skipping agent patch.")
 
+if commands_changed:
+    print(f"  -> {commands_changed} patch(es) applied to CLI logging")
+else:
+    print("  -> No changes to CLI logging")
 
 # -- 5. gateway.py --------------------------------------------------
 # Gateway command moved to nanobot/cli/gateway.py in upstream v0.2.2+
@@ -470,6 +378,12 @@ else:
 
 def patch_sync_workspace_templates(content: str) -> tuple[str, int]:
     """6. sync_workspace_templates(): check NANOBOT_HOME/../scripts/templates/ first."""
+    # Guards idempotency: `old` is a prefix of the injected block, so without
+    # this marker the pattern re-matches on every setup re-run and duplicates.
+    _marker = "# Nanowin: prefer custom templates from NANOBOT_HOME/../scripts/templates/"
+    if _marker in content:
+        print("  [SKIP] 6. helpers.py sync_workspace_templates custom templates: already patched")
+        return content, 0
     old = (
         '    try:\n'
         '        tpl = pkg_files("nanobot") / "templates"\n'
