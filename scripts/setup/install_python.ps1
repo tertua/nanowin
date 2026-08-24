@@ -54,7 +54,11 @@ if ($pipExists) {
     if (-not (Test-Path $GetPip)) {
         throw "Failed to download get-pip.py"
     }
-    Verify-Hash -Path $GetPip -Expected "a341e1a43e38001c551a1508a73ff23636a11970b61d901d9a1cad2a18f57055" -Label "get-pip.py"
+    # get-pip.py di bootstrap.pypa.io berubah setiap rilis pip baru (tidak ada
+    # URL versi yang stabil). Jika hash mismatch: download ulang file tersebut,
+    # hitung `Get-FileHash get-pip.py -Algorithm SHA256`, lalu perbarui di sini.
+    # Terakhir dicek: 2026-08-24 (pip 26.2.1)
+    Verify-Hash -Path $GetPip -Expected "fb24e693bab954209a063d90953621412ccad4a500905a726286e038f508ddf6" -Label "get-pip.py"
     Write-Info "Installing pip..."
     & $PythonExe $GetPip --no-warn-script-location
     if ($LASTEXITCODE -ne 0) {
