@@ -19,7 +19,7 @@ if (Test-Path $NodeExe) {
     if (-not (Test-Path $NodeZip)) {
         throw "Failed to download Node.js!"
     }
-    $nodeHashes = @{ "x64" = "edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56" }
+    $nodeHashes = @{ "x64" = "ec56b84a7551893ab2324ebdfdc4ab974a63b4781162600b68a1293cc3e53765" }
     if ($nodeHashes.ContainsKey($ArchNode)) {
         Verify-Hash -Path $NodeZip -Expected $nodeHashes[$ArchNode] -Label "Node.js v$NodeVer $ArchNode"
     }

@@ -34,7 +34,7 @@ $MinGwDir        = if ($Is64) { "mingw64\bin" } else { "mingw32\bin" }
 # Software version
 $PyVer      = "3.12.3"
 $GitVer     = "2.54.0"
-$NodeVer    = "24.16.0"
+$NodeVer    = "24.18.1"
 $GhVer      = "2.93.0"
 
 Write-Host "  $('=' * 49)" -ForegroundColor Cyan
