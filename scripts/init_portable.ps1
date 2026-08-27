@@ -40,7 +40,6 @@ $Env:LOCALAPPDATA     = Join-Path $HOME_DIR "AppData\Local"
 $Env:APPDATA          = Join-Path $HOME_DIR "AppData\Roaming"
 $Env:TMP              = $TMP_DIR
 $Env:TEMP             = $TMP_DIR
-$Env:NANOBOT_HOME     = $DATA_DIR
 $Env:GH_CONFIG_DIR    = $APPDATA
 
 # -- Python/Node.js cache paths ---------------------------------------
@@ -64,6 +63,11 @@ $PortablePaths = @(
 $env:PATH = ($PortablePaths -join ';') + ';' + $env:PATH
 
 # -- Create portable directories if missing ---------------------------
+# Marker so the nanobot fork detects this as a portable install root
+# (nanobot/config/portable.py looks for <root>/.nanowin or data/config.json).
+if (-not (Test-Path (Join-Path $ROOT ".nanowin"))) {
+    New-Item -ItemType File -Path (Join-Path $ROOT ".nanowin") -Force | Out-Null
+}
 if (-not (Test-Path $HOME_DIR)) {
     New-Item -ItemType Directory -Path $HOME_DIR -Force | Out-Null
 }
@@ -135,6 +139,6 @@ function Load-EnvEncrypted {
     return $true
 }
 
-# -- Set NANOBOT_WORKSPACE from config.json --------------------------
-$__ws = Resolve-Workspace
-if ($__ws) { $env:NANOBOT_WORKSPACE = $__ws }
+# NOTE: NANOBOT_HOME / NANOBOT_WORKSPACE env vars are no longer needed. The
+# nanobot fork detects its portable data root from the filesystem layout
+# (nanobot/config/portable.py), so nothing has to be injected into the env.

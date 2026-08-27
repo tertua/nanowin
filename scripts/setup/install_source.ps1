@@ -53,15 +53,6 @@ if (-not $SrcOk) {
 }
 Write-OK ""
 
-# ===== PORTABLE PATHS PATCH =====
-$patchScript = Join-Path $SCRIPTS_DIR "portable_paths.py"
-if (Test-Path $patchScript) {
-    Write-Info "Apply portable paths patch..."
-    & $PythonExe $patchScript
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warn "Patch failed. Setup continues."
-    } else {
-        Write-OK "Path patch applied."
-    }
-}
+# NOTE: Portable path handling now lives in the nanobot fork source itself
+# (nanobot/config/portable.py). No post-extraction source patch is needed.
 Write-OK ""
