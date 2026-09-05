@@ -102,10 +102,12 @@ def main():
     # === providers ===
     if 'providers' not in config:
         config['providers'] = {}
+    # custom: ${VAR} refs for OpenAI-compatible endpoints. apiType left unset
+    # (defaults to "auto"); upstream schema rejects non-"auto" api_type outside
+    # providers.openai (see nanobot/config/schema.py ProvidersConfig).
     config['providers']['custom'] = {
         "apiKey": "${NANOBOT_CUSTOM_API_KEY}",
-        "apiBase": "${NANOBOT_CUSTOM_API_BASE}",
-        "apiType": "auto"
+        "apiBase": "${NANOBOT_CUSTOM_API_BASE}"
     }
     config['providers']['nvidia'] = {
         "apiKey": "${NVIDIA_NIM_API_KEY}"
@@ -122,12 +124,6 @@ def main():
 
     existing = defaults.get('disabledSkills', [])
     defaults['disabledSkills'] = list(dict.fromkeys([*existing, *_LITE_DISABLED_SKILLS]))
-
-    # === channels ===
-    if 'channels' not in config:
-        config['channels'] = {}
-    config['channels']['cli'] = {"enabled": True}
-    config['channels'].setdefault('websocket', {})['enabled'] = True
 
     # === tools.exec ===
     tools = config.get('tools', {})

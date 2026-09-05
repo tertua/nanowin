@@ -1,66 +1,64 @@
 # ============================================
 #   NANOBOT - CLEAN API ONLY REQUIREMENTS
-#   Web UI + Chat Apps (Telegram) + API. 
+#   Web UI + Chat Apps (Telegram) + API.
 #                   simata.id
 # ============================================
+# Pinned to tertua/nanobot@master (nanobot-ai 0.3.0) deps. Any package also
+# listed in upstream pyproject.toml [project.dependencies] uses the same lower
+# bound; Lite-specific additions (fastapi, telegram-bot, RAG libs) are below.
 
-# --- Web Server & UI ---
+# --- Web Server & UI (Lite-specific: not in upstream) ---
 fastapi
 uvicorn
 socksio>=1.0.0,<2.0.0; sys_platform != 'win32'
 python-socketio>=5.16.2,<6.0.0
-pydantic>=2.13.4,<3.0.0
-pydantic-settings>=2.14.1,<3.0.0
 python-socks[asyncio]>=2.8.0,<3.0.0; sys_platform != 'win32'
-ddgs>=9.5.5,<10.0.0
 
-# --- CLI & Display ---
-typer>=0.26.7,<1.0.0
-rich>=14.0.0,<15.0.0
-click
-questionary>=2.1.1,<3.0.0
-oauth-cli-kit>=0.1.3,<1.0.0
-
-# --- OpenAI / LLM API ---
-openai>=2.42.0,<3.0.0
-tiktoken>=0.13.0,<1.0.0
-anthropic>=0.109.2,<1.0.0
+# --- Upstream core (match pyproject.toml [project.dependencies]) ---
+pydantic>=2.12.0,<3.0.0
+pydantic-settings>=2.12.0,<3.0.0
+typer>=0.20.0,<1.0.0
+anthropic>=0.100.0,<1.0.0
+websockets>=15.0,<17.0
 httpx[socks]>=0.28.0,<1.0.0
-httpx2>=2.3.0,<3.0.0
-tenacity
-aiohttp>=3.14.0,<4.0.0
-
-# --- File Parsing (PDF, DOCX, PPTX) ---
-pypdf>=6.13.1,<7.0.0
-pyyaml>=6.0,<7.0.0
-python-docx>=1.2.0,<2.0.0
-python-pptx>=1.0.2,<2.0.0
-openpyxl>=3.1.0,<4.0.0
-chardet>=3.0.2,<6.0.0
-
-# --- Utils & Core ---
+ddgs>=9.5.5,<10.0.0
+oauth-cli-kit>=0.1.6,<1.0.0
 loguru>=0.7.3,<1.0.0
-jinja2>=3.1.0,<4.0.0
-json-repair>=0.57.0,<1.0.0
-filelock>=3.25.2
-msgpack>=1.1.2,<2.0.0
-mcp>=1.27.2,<2.0.0
-dulwich>=1.2.5
-croniter>=6.0.0,<7.0.0
-prompt-toolkit>=3.0.52,<4.0.0
 readability-lxml>=0.8.4,<1.0.0
-watchfiles>=1.0.4,<2.0.0
-defusedxml>=0.7.1,<1.0.0
+lxml-html-clean>=0.4.0,<1.0.0
+rich>=14.0.0,<15.0.0
+qrcode[pil]>=8.0
+croniter>=6.0.0,<7.0.0
+prompt-toolkit>=3.0.50,<4.0.0
+questionary>=2.0.0,<3.0.0
+mcp>=1.26.0,<2.0.0
+json-repair>=0.57.0,<1.0.0
+chardet>=3.0.2,<6.0.0
+openai>=2.8.0
+tiktoken>=0.12.0,<1.0.0
+jinja2>=3.1.0,<4.0.0
+dulwich>=0.22.0,<1.0.0
+pyyaml>=6.0,<7.0.0
+filelock>=3.25.2
+watchfiles>=1.1.1,<2.0.0
 packaging>=24.0
-tzdata
+tzdata>=2025.2
 tzlocal>=5.3.1,<6.0.0
-qrcode[pil]>=8.0,<9.0.0
+defusedxml>=0.7.1,<1.0.0
+pypdf>=5.0.0,<6.0.0
+python-docx>=1.1.0,<2.0.0
+openpyxl>=3.1.0,<4.0.0
+python-pptx>=1.0.0,<2.0.0
+
+# --- Upstream [api] extra (Lite pulls this directly) ---
+aiohttp>=3.9.0,<4.0.0
+
+# --- Lite-specific (not in upstream; verified non-transitive) ---
 pywin32
+websocket-client>=1.9.0,<2.0.0
 
 # --- Chat Apps ---
 python-telegram-bot[webhooks]>=22.7,<23.0
-websockets>=16.0,<17.0
-websocket-client>=1.9.0,<2.0.0
 
 # --- RAG / Vector DB (API Mode) ---
 qdrant-client
