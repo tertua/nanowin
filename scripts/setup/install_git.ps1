@@ -19,7 +19,7 @@ if (Test-Path (Join-Path $ROOT "bin\git\cmd\git.exe")) {
     if (-not (Test-Path $GitZip)) {
         throw "Failed to download MinGit!"
     }
-    $gitHashes = @{ "64-bit" = "04f937e1f0918b17b9be6f2294cb2bb66e96e1d9832d1c298e2de088a1d0e668" }
+    $gitHashes = @{ "64-bit" = "31497e7968196332263459ee319d2524e3ebc5786ab895e2abad34ffdd4f4ebf" }
     if ($gitHashes.ContainsKey($ArchMinGit)) {
         Verify-Hash -Path $GitZip -Expected $gitHashes[$ArchMinGit] -Label "MinGit $GitVer $ArchMinGit"
     }
