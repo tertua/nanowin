@@ -18,7 +18,7 @@ if (Test-Path $GhExe) {
     if (-not (Test-Path $GhZip)) {
         throw "Failed to download gh!"
     }
-    $ghHashes = @{ "amd64" = "77aa01ed7317295ad550de0ad04f3f276b1ef0e9272e3d002ac28dd99853d211" }
+    $ghHashes = @{ "amd64" = "227e35230b25db3fa1b997bab7cf4d67df0470a3b75b99e4ee66bce1a7cd4e72" }
     if ($ghHashes.ContainsKey($ArchGh)) {
         Verify-Hash -Path $GhZip -Expected $ghHashes[$ArchGh] -Label "gh v$GhVer $ArchGh"
     }
